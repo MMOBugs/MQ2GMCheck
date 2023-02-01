@@ -914,15 +914,13 @@ PLUGIN_API VOID OnPulse()
 		waveOutSetVolume(NULL, dwVolume);
 	}
 
-	unsigned int Tmp;
 	if (!Reminder_Interval)
 		return;
 
 	if (gGameState == GAMESTATE_INGAME)
 	{
 		UpdateAlerts();
-		Tmp = MQGetTickCount64();
-		if (Tmp >= Check_PulseCount + Reminder_Interval && Reminder_Interval)
+		if (MQGetTickCount64() >= Check_PulseCount + Reminder_Interval && Reminder_Interval)
 		{
 			Check_PulseCount = MQGetTickCount64();
 			if (bGMAlert = GMCheck() && !bGMQuiet && !GMNames.empty() && bGMCheck)
