@@ -118,128 +118,146 @@ public:
 	virtual bool GetMember(MQVarPtr VarPtr, const char* Member, char* Index, MQTypeVar& Dest) override
 	{
 		using namespace mq::datatypes;
-
-		char szTmp[MAX_STRING] = { 0 };
-		int lResult;
 		MQTypeMember* pMember = MQ2GMCheckType::FindMember(Member);
+
 		if (!pMember)
 			return false;
+
 		switch ((GMCheckMembers)pMember->ID)
 		{
-		case GMCheckMembers::Status:
-			Dest.DWord = bGMCheck;
-			Dest.Type = pBoolType;
-			return true;
-		case GMCheckMembers::GM:
-			Dest.DWord = GMCheck();
-			Dest.Type = pBoolType;
-			return true;
-		case GMCheckMembers::Names:
-			szTmp[0] = 0;
-			for (std::string GMName : GMNames)
-			{
-				if (szTmp[0])
-					strcat_s(szTmp, ", ");
+			case GMCheckMembers::Status:
+				Dest.DWord = bGMCheck;
+				Dest.Type = pBoolType;
+				return true;
 
-				strcat_s(szTmp, GMName.c_str());
+			case GMCheckMembers::GM:
+				Dest.DWord = GMCheck();
+				Dest.Type = pBoolType;
+				return true;
+
+			case GMCheckMembers::Names:
+			{
+				char szTmp[MAX_STRING] = { 0 };
+				for (std::string GMName : GMNames) {
+					if (szTmp[0])
+						strcat_s(DataTypeTemp, ", ");
+
+					strcat_s(DataTypeTemp, GMName.c_str());
+				}
+
+				if (!DataTypeTemp[0])
+					strcpy_s(DataTypeTemp, "");
+
+				Dest.Ptr = DataTypeTemp;
+				Dest.Type = pStringType;
+				return true;
 			}
-			if (szTmp[0])
-				strcpy_s(DataTypeTemp, szTmp);
-			else
-				strcpy_s(DataTypeTemp, "");
-			Dest.Ptr = DataTypeTemp;
-			Dest.Type = pStringType;
-			return true;
-		case GMCheckMembers::Sound:
-			Dest.DWord = bGMSound;
-			Dest.Type = pBoolType;
-			return true;
-		case GMCheckMembers::Beep:
-			Dest.DWord = bGMBeep;
-			Dest.Type = pBoolType;
-			return true;
-		case GMCheckMembers::Popup:
-			Dest.DWord = bGMPopup;
-			Dest.Type = pBoolType;
-			return true;
-		case GMCheckMembers::Corpse:
-			Dest.DWord = bGMCorpse;
-			Dest.Type = pBoolType;
-			return true;
-		case GMCheckMembers::Quiet:
-			Dest.DWord = bGMQuiet;
-			Dest.Type = pBoolType;
-			return true;
-		case GMCheckMembers::Interval:
-			Dest.Int = Reminder_Interval / 1000;
-			Dest.Type = pIntType;
-			return true;
-		case GMCheckMembers::Enter:
-			strcpy_s(DataTypeTemp, szEnterSound);
-			Dest.Ptr = DataTypeTemp;
-			Dest.Type = pStringType;
-			return true;
-		case GMCheckMembers::Leave:
-			strcpy_s(DataTypeTemp, szLeaveSound);
-			Dest.Ptr = DataTypeTemp;
-			Dest.Type = pStringType;
-			return true;
-		case GMCheckMembers::Remind:
-			strcpy_s(DataTypeTemp, szRemindSound);
-			Dest.Ptr = DataTypeTemp;
-			Dest.Type = pStringType;
-			return true;
-		case GMCheckMembers::LastGMName:
-			strcpy_s(DataTypeTemp, szLastGMName);
-			Dest.Ptr = DataTypeTemp;
-			Dest.Type = pStringType;
-			return true;
-		case GMCheckMembers::LastGMTime:
-			strcpy_s(DataTypeTemp, szLastGMTime);
-			Dest.Ptr = DataTypeTemp;
-			Dest.Type = pStringType;
-			return true;
-		case GMCheckMembers::LastGMDate:
-			strcpy_s(DataTypeTemp, szLastGMDate);
-			Dest.Ptr = DataTypeTemp;
-			Dest.Type = pStringType;
-			return true;
-		case GMCheckMembers::LastGMZone:
-			strcpy_s(DataTypeTemp, szLastGMZone);
-			Dest.Ptr = DataTypeTemp;
-			Dest.Type = pStringType;
-			return true;
-		case GMCheckMembers::GMEnterCmd:
-			strcpy_s(DataTypeTemp, szGMEnterCmd);
-			Dest.Ptr = DataTypeTemp;
-			Dest.Type = pStringType;
-			return true;
-		case GMCheckMembers::GMEnterCmdIf:
-			strcpy_s(szTmp, szGMEnterCmdIf);
-			lResult = MCEval(szTmp);
-			if (lResult)
-				strcpy_s(DataTypeTemp, "TRUE");
-			else
-				strcpy_s(DataTypeTemp, "FALSE");
-			Dest.Ptr = DataTypeTemp;
-			Dest.Type = pStringType;
-			return true;
-		case GMCheckMembers::GMLeaveCmd:
-			strcpy_s(DataTypeTemp, szGMLeaveCmd);
-			Dest.Ptr = DataTypeTemp;
-			Dest.Type = pStringType;
-			return true;
-		case GMCheckMembers::GMLeaveCmdIf:
-			strcpy_s(szTmp, szGMLeaveCmdIf);
-			lResult = MCEval(szTmp);
-			if (lResult)
-				strcpy_s(DataTypeTemp, "TRUE");
-			else
-				strcpy_s(DataTypeTemp, "FALSE");
-			Dest.Ptr = DataTypeTemp;
-			Dest.Type = pStringType;
-			return true;
+
+			case GMCheckMembers::Sound:
+				Dest.DWord = bGMSound;
+				Dest.Type = pBoolType;
+				return true;
+
+			case GMCheckMembers::Beep:
+				Dest.DWord = bGMBeep;
+				Dest.Type = pBoolType;
+				return true;
+
+			case GMCheckMembers::Popup:
+				Dest.DWord = bGMPopup;
+				Dest.Type = pBoolType;
+				return true;
+
+			case GMCheckMembers::Corpse:
+				Dest.DWord = bGMCorpse;
+				Dest.Type = pBoolType;
+				return true;
+
+			case GMCheckMembers::Quiet:
+				Dest.DWord = bGMQuiet;
+				Dest.Type = pBoolType;
+				return true;
+
+			case GMCheckMembers::Interval:
+				Dest.Int = Reminder_Interval / 1000;
+				Dest.Type = pIntType;
+				return true;
+
+			case GMCheckMembers::Enter:
+				strcpy_s(DataTypeTemp, szEnterSound);
+				Dest.Ptr = DataTypeTemp;
+				Dest.Type = pStringType;
+				return true;
+
+			case GMCheckMembers::Leave:
+				strcpy_s(DataTypeTemp, szLeaveSound);
+				Dest.Ptr = DataTypeTemp;
+				Dest.Type = pStringType;
+				return true;
+
+			case GMCheckMembers::Remind:
+				strcpy_s(DataTypeTemp, szRemindSound);
+				Dest.Ptr = DataTypeTemp;
+				Dest.Type = pStringType;
+				return true;
+
+			case GMCheckMembers::LastGMName:
+				strcpy_s(DataTypeTemp, szLastGMName);
+				Dest.Ptr = DataTypeTemp;
+				Dest.Type = pStringType;
+				return true;
+
+			case GMCheckMembers::LastGMTime:
+				strcpy_s(DataTypeTemp, szLastGMTime);
+				Dest.Ptr = DataTypeTemp;
+				Dest.Type = pStringType;
+				return true;
+
+			case GMCheckMembers::LastGMDate:
+				strcpy_s(DataTypeTemp, szLastGMDate);
+				Dest.Ptr = DataTypeTemp;
+				Dest.Type = pStringType;
+				return true;
+
+			case GMCheckMembers::LastGMZone:
+				strcpy_s(DataTypeTemp, szLastGMZone);
+				Dest.Ptr = DataTypeTemp;
+				Dest.Type = pStringType;
+				return true;
+
+			case GMCheckMembers::GMEnterCmd:
+				strcpy_s(DataTypeTemp, szGMEnterCmd);
+				Dest.Ptr = DataTypeTemp;
+				Dest.Type = pStringType;
+				return true;
+
+			case GMCheckMembers::GMEnterCmdIf:
+				if (MCEval(szGMEnterCmdIf))
+					strcpy_s(DataTypeTemp, "TRUE");
+				else
+					strcpy_s(DataTypeTemp, "FALSE");
+
+				Dest.Ptr = DataTypeTemp;
+				Dest.Type = pStringType;
+				return true;
+
+			case GMCheckMembers::GMLeaveCmd:
+				strcpy_s(DataTypeTemp, szGMLeaveCmd);
+				Dest.Ptr = DataTypeTemp;
+				Dest.Type = pStringType;
+				return true;
+
+			case GMCheckMembers::GMLeaveCmdIf:
+				if (MCEval(szGMLeaveCmdIf))
+					strcpy_s(DataTypeTemp, "TRUE");
+				else
+					strcpy_s(DataTypeTemp, "FALSE");
+
+				Dest.Ptr = DataTypeTemp;
+				Dest.Type = pStringType;
+				return true;
 		}
+
 		return false;
 	}
 
@@ -475,14 +493,17 @@ char* DisplayTime()
 	static char* CurrentTime = NULL;
 	if (!CurrentTime)
 		CurrentTime = new char[MAX_STRING];
+
 	if (!CurrentTime)
 		return(NULL);
+
 	struct tm currentTime;
 	time_t long_time;
 	CurrentTime[0] = 0;
 	time(&long_time);
 	localtime_s(&currentTime, &long_time);
 	strftime(CurrentTime, MAX_STRING - 1, "%I:%M:%S %p", &currentTime);
+
 	return(CurrentTime);
 }
 
@@ -491,14 +512,17 @@ char* DisplayDate()
 	static char* CurrentDate = NULL;
 	if (!CurrentDate)
 		CurrentDate = new char[MAX_STRING];
+
 	if (!CurrentDate)
 		return(NULL);
+
 	struct tm currentDate;
 	time_t long_time;
 	CurrentDate[0] = 0;
 	time(&long_time);
 	localtime_s(&currentDate, &long_time);
 	strftime(CurrentDate, MAX_STRING - 1, "%m-%d-%y", &currentDate);
+
 	return(CurrentDate);
 }
 
@@ -546,12 +570,14 @@ void GMQuiet(char* szLine)
 {
 	char szArg[MAX_STRING];
 	GetArg(szArg, szLine, 1);
+
 	if (!szArg[0])
 		bGMQuiet = !bGMQuiet;
 	else if (!_strnicmp(szArg, "on", 2))
 		bGMQuiet = true;
 	else if (!_strnicmp(szArg, "off", 3))
 		bGMQuiet = false;
+
 	WriteChatf("%s\amGM alert and reminder sounds %s%s\am.", PluginMsg.c_str(), bGMQuiet ? "temporarily " : "", bGMQuiet ? "\arDISABLED" : "\agENABLED");
 }
 
@@ -564,6 +590,7 @@ void GMTest(char* szLine)
 		WriteChatf("%s\arMust be in game to use /gmcheck test", PluginMsg.c_str());
 		return;
 	}
+
 	GetArg(szArg, szLine, 1);
 	if (!strncmp(szArg, "enter", 5))
 	{
@@ -576,26 +603,26 @@ void GMTest(char* szLine)
 			PluginMsg.c_str(),
 			lResult ? "\agTRUE" : "\arFALSE", lResult ? (szGMEnterCmd[0] ? (szGMEnterCmd[0] == '/' ? "\agEXECUTE" : "\arNOT EXECUTE") : "\arNOT EXECUTE") : "\arNOT EXECUTE",
 			szGMEnterCmd[0] ? (szGMEnterCmd[0] == '/' ? szGMEnterCmd : "<IGNORED>") : "<NONE>");
+
+		if (!bGMQuiet && bGMSound)
+		{
+			GetPrivateProfileString(GetCharInfo()->Name, "EnterSound", "", szTmp, MAX_STRING, INIFileName);
+			if (szTmp[0] && _FileExists(szTmp))
+				PlayGMSound(szTmp);
+			else
+				PlayGMSound(szEnterSound);
+		}
+
+		if (!bGMQuiet && bGMBeep)
+		{
+			Beep(0x500, 250);
+			Beep(0x3000, 250);
+			Beep(0x500, 250);
+			Beep(0x3000, 250);
+		}
+
 		if (bGMPopup)
 			DisplayOverlayText(szPopup, CONCOLOR_RED, 100, 500, 500, 3000);
-		if (!bGMQuiet)
-		{
-			if (bGMSound)
-			{
-				GetPrivateProfileString(GetCharInfo()->Name, "EnterSound", "", szTmp, MAX_STRING, INIFileName);
-				if (szTmp[0] && _FileExists(szTmp))
-					PlayGMSound(szTmp);
-				else
-					PlayGMSound(szEnterSound);
-			}
-			if (bGMBeep)
-			{
-				Beep(0x500, 250);
-				Beep(0x3000, 250);
-				Beep(0x500, 250);
-				Beep(0x3000, 250);
-			}
-		}
 	}
 	else if (!strncmp(szArg, "leave", 5))
 	{
@@ -609,24 +636,24 @@ void GMTest(char* szLine)
 			lResult ? "\agTRUE" : "\arFALSE",
 			lResult ? (szGMLeaveCmd[0] ? (szGMLeaveCmd[0] == '/' ? "\agEXECUTE" : "\arNOT EXECUTE") : "\arNOT EXECUTE") : "\arNOT EXECUTE",
 			szGMLeaveCmd[0] ? (szGMLeaveCmd[0] == '/' ? szGMLeaveCmd : "<IGNORED>") : "<NONE>");
-		if (!bGMQuiet)
+
+		if (!bGMQuiet && bGMSound)
 		{
-			if (bGMSound)
-			{
-				GetPrivateProfileString(GetCharInfo()->Name, "LeaveSound", "", szTmp, MAX_STRING, INIFileName);
-				if (szTmp[0] && _FileExists(szTmp))
-					PlayGMSound(szTmp);
-				else
-					PlayGMSound(szLeaveSound);
-			}
-			if (bGMBeep)
-			{
-				Beep(0x600, 250);
-				Beep(0x600, 250);
-				Beep(0x600, 250);
-				Beep(0x600, 250);
-			}
+			GetPrivateProfileString(GetCharInfo()->Name, "LeaveSound", "", szTmp, MAX_STRING, INIFileName);
+			if (szTmp[0] && _FileExists(szTmp))
+				PlayGMSound(szTmp);
+			else
+				PlayGMSound(szLeaveSound);
 		}
+
+		if (!bGMQuiet && bGMBeep)
+		{
+			Beep(0x600, 250);
+			Beep(0x600, 250);
+			Beep(0x600, 250);
+			Beep(0x600, 250);
+		}
+
 		if (bGMPopup)
 			DisplayOverlayText(szPopup, CONCOLOR_GREEN, 100, 500, 500, 3000);
 	}
@@ -635,9 +662,7 @@ void GMTest(char* szLine)
 		sprintf_s(szMsg, "(TEST) \arGM ALERT!!  \ayGM in zone.  \at(\ag%s\at)", GetCharInfo()->Name);
 		WriteChatf("%s%s", PluginMsg.c_str(), szMsg);
 		if (bGMSound)
-		{
 			PlayGMSound(szRemindSound);
-		}
 	}
 	else
 	{
@@ -651,61 +676,48 @@ void GMSS(char* szLine)
 	bool bOK = false;
 	GetArg(szArg, szLine, 1);
 	GetArg(szFile, szLine, 2);
+	if (szFile[0] && _FileExists(szFile))
+		bOK = true;
+
+	if (!bOK)
+	{
+		WriteChatf("%s\arSound file not found, setting not changed, tried: \am%s", PluginMsg.c_str(), szFile[0] ? szFile : "(No filename supplied)");
+		return;
+	}
+
 	if (!strncmp(szArg, "enter", 5))
 	{
-		if (szFile[0] && _FileExists(szFile))
-		{
-			bOK = true;
-			strcpy_s(szEnterSound, szFile);
-			WriteChatf("%s\at'enter' sound set to: \am%s", PluginMsg.c_str(), szEnterSound);
-			WriteChatf("%s\agDon't forget to use '/gmcheck save' if you want this to be persistant!", PluginMsg.c_str());
-		}
+		strcpy_s(szEnterSound, szFile);
+		WriteChatf("%s\at'enter' sound set to: \am%s", PluginMsg.c_str(), szEnterSound);
+		WriteChatf("%s\agDon't forget to use '/gmcheck save' if you want this to be persistant!", PluginMsg.c_str());
 	}
 	else if (!strncmp(szArg, "leave", 5))
 	{
-		if (szFile[0] && _FileExists(szFile))
-		{
-			bOK = true;
-			strcpy_s(szLeaveSound, szFile);
-			WriteChatf("%s\at'leave' sound set to: \am%s", PluginMsg.c_str(), szLeaveSound);
-			WriteChatf("%s\agDon't forget to use '/gmcheck save' if you want this to be persistant!", PluginMsg.c_str());
-		}
+		strcpy_s(szLeaveSound, szFile);
+		WriteChatf("%s\at'leave' sound set to: \am%s", PluginMsg.c_str(), szLeaveSound);
+		WriteChatf("%s\agDon't forget to use '/gmcheck save' if you want this to be persistant!", PluginMsg.c_str());
 	}
 	else if (!strncmp(szArg, "remind", 5))
 	{
-		if (szFile[0] && _FileExists(szFile))
-		{
-			bOK = true;
-			strcpy_s(szRemindSound, szFile);
-			WriteChatf("%s\at'remind' sound set to: \am%s", PluginMsg.c_str(), szRemindSound);
-			WriteChatf("%s\agDon't forget to use '/gmcheck save' if you want this to be persistant!", PluginMsg.c_str());
-		}
+		strcpy_s(szRemindSound, szFile);
+		WriteChatf("%s\at'remind' sound set to: \am%s", PluginMsg.c_str(), szRemindSound);
+		WriteChatf("%s\agDon't forget to use '/gmcheck save' if you want this to be persistant!", PluginMsg.c_str());
 	}
 	else
 	{
-		bOK = true;
 		WriteChatf("%s\arBad option, usage: \at/gmcheck ss {enter|leave|remind} SoundFileName", PluginMsg.c_str());
 	}
-	if (!bOK)
-		WriteChatf("%s\arSound file not found, setting not changed, tried: \am%s", PluginMsg.c_str(), szFile[0] ? szFile : "(No filename supplied)");
 }
 
 void UpdateAlerts()
 {
-	if (GMNames.empty())
-		return;
-
-	if (gGameState != GAMESTATE_INGAME)
-		return;
-
-	if (MQGetTickCount64() < Update_PulseCount + 15000)
+	if (GMNames.empty() || gGameState != GAMESTATE_INGAME || MQGetTickCount64() < Update_PulseCount + 15000)
 		return;
 
 	Update_PulseCount = MQGetTickCount64();
 	uint32_t index = 0;
 	for (std::string GMName : GMNames)
 	{
-		char szTmp[MAX_STRING] = { 0 };
 		PlayerClient* pSpawn = GetSpawnByName(GMName.c_str());
 		if (pSpawn && pSpawn->GM) {
 			index++;
@@ -719,28 +731,26 @@ void UpdateAlerts()
 		}
 
 		if (GMNames.empty() && bGMCmdActive) {
+			char szTmp[MAX_STRING] = { 0 };
 			strcpy_s(szTmp, szGMLeaveCmdIf);
-			if (MCEval(szTmp)) {
-				if (szGMLeaveCmd[0] && szGMLeaveCmd[0] == '/') {
-						DoCommand((GetCharInfo() && GetCharInfo()->pSpawn) ? GetCharInfo()->pSpawn : NULL, szGMLeaveCmd);
-						bGMCmdActive = false;
-				}
+			if (MCEval(szTmp) && szGMLeaveCmd[0] && szGMLeaveCmd[0] == '/') {
+				DoCommand((GetCharInfo() && GetCharInfo()->pSpawn) ? GetCharInfo()->pSpawn : NULL, szGMLeaveCmd);
+				bGMCmdActive = false;
 			}
 		}
 
-		if (!bGMQuiet) {
-			if (bGMSound) {
-				GetPrivateProfileString(GMName.c_str(), "LeaveSound", "", szTmp, MAX_STRING, INIFileName);
-				if (szTmp[0] && _FileExists(szTmp))
-					PlayGMSound(szTmp);
-				else
-					PlayGMSound(szLeaveSound);
-			}
+		if (!bGMQuiet && bGMSound) {
+			char szTmp[MAX_STRING] = { 0 };
+			GetPrivateProfileString(GMName.c_str(), "LeaveSound", "", szTmp, MAX_STRING, INIFileName);
+			if (szTmp[0] && _FileExists(szTmp))
+				PlayGMSound(szTmp);
+			else
+				PlayGMSound(szLeaveSound);
+		}
 
-			if (bGMBeep) {
-				PlaySound(NULL, NULL, SND_NODEFAULT);
-				PlaySound("SystemDefault", NULL, SND_ALIAS | SND_ASYNC | SND_NODEFAULT);
-			}
+		if (!bGMQuiet && bGMBeep) {
+			PlaySound(NULL, NULL, SND_NODEFAULT);
+			PlaySound("SystemDefault", NULL, SND_ALIAS | SND_ASYNC | SND_NODEFAULT);
 		}
 
 		if (bGMPopup) {
@@ -870,18 +880,20 @@ PLUGIN_API VOID InitializePlugin()
 	GMNames.clear();
 	Check_PulseCount = MQGetTickCount64();
 	Update_PulseCount = MQGetTickCount64();
+	ReadSettings();
+
 	AddMQ2Data("GMCheck", MQ2GMCheckType::dataGMCheck);
 	bmMQ2GMCheck = AddMQ2Benchmark(PluginName.c_str());
 	pGMCheckType = new MQ2GMCheckType;
-	ReadSettings();
 	AddCommand("/gmcheck", GMCheckCmd);
+
 	if (gGameState == GAMESTATE_INGAME)
 		bGMAlert = GMCheck();
 }
 
 PLUGIN_API VOID ShutdownPlugin()
 {
-	WriteChatf("%s \amUnloading plugin.", PluginMsg.c_str());
+	WriteChatf("%s\amUnloading plugin.", PluginMsg.c_str());
 	DebugSpewAlways("Shutting down MQ2GMCheck");
 	RemoveCommand("/gmcheck");
 	GMNames.clear();
@@ -895,15 +907,17 @@ PLUGIN_API VOID ShutdownPlugin()
 PLUGIN_API VOID OnPulse()
 {
 	MQScopedBenchmark bm(bmMQ2GMCheck);
-	char szTmp[MAX_STRING] = { 0 }, szNames[MAX_STRING];
+
 	if (bVolSet && StopSoundTimer && MQGetTickCount64() >= StopSoundTimer)
 	{
 		StopSoundTimer = 0;
 		waveOutSetVolume(NULL, dwVolume);
 	}
+
 	unsigned int Tmp;
 	if (!Reminder_Interval)
 		return;
+
 	if (gGameState == GAMESTATE_INGAME)
 	{
 		UpdateAlerts();
@@ -911,37 +925,29 @@ PLUGIN_API VOID OnPulse()
 		if (Tmp >= Check_PulseCount + Reminder_Interval && Reminder_Interval)
 		{
 			Check_PulseCount = MQGetTickCount64();
-			if (bGMAlert = GMCheck())
+			if (bGMAlert = GMCheck() && !bGMQuiet && !GMNames.empty() && bGMCheck)
 			{
-				if (!bGMQuiet)
-				{
-					if (GMNames.empty())
-						return;
-					if (!bGMCheck)
-						return;
-					szNames[0] = 0;
-					for (const std::string GMName : GMNames)
-					{
-						if (strlen(szNames) > 500)
-						{
-							strcat_s(szNames, " ...");
-							break;
-						}
-
-						if (szNames[0])
-							strcat_s(szNames, "\am, ");
-
-						strcat_s(szNames, "\ag");
-						strcat_s(szNames, GMName.c_str());
+				char szNames[MAX_STRING] = { 0 };
+				for (const std::string GMName : GMNames) {
+					if (strlen(szNames) > 500) {
+						strcat_s(szNames, " ...");
+						break;
 					}
-					sprintf_s(szTmp, "\arGM ALERT!!  \ayGM in zone.  \at(%s\at)", szNames);
-					if (bGMChatAlert)
-						WriteChatf("%s%s", PluginMsg.c_str(), szTmp);
-					if (bGMSound)
-					{
-						PlayGMSound(szRemindSound);
-					}
+
+					if (szNames[0])
+						strcat_s(szNames, "\am, ");
+
+					strcat_s(szNames, "\ag");
+					strcat_s(szNames, GMName.c_str());
 				}
+
+				char szTmp[MAX_STRING] = { 0 };
+				sprintf_s(szTmp, "\arGM ALERT!!  \ayGM in zone.  \at(%s\at)", szNames);
+				if (bGMChatAlert)
+					WriteChatf("%s%s", PluginMsg.c_str(), szTmp);
+
+				if (bGMSound)
+					PlayGMSound(szRemindSound);
 			}
 		}
 	}
@@ -949,134 +955,124 @@ PLUGIN_API VOID OnPulse()
 
 PLUGIN_API VOID OnAddSpawn(PlayerClient* pSpawn)
 {
-	char szTmp[MAX_STRING] = { 0 };
-	char szMsg[MAX_STRING], szPopup[MAX_STRING];
-	if (bGMCheck)
+	if (bGMCheck && pSpawn && pSpawn->GM && bGMCorpse ? pSpawn->Type == SPAWN_CORPSE : true)
 	{
-		if (pSpawn)
+		if (!strlen(pSpawn->DisplayedName))
+			return;
+
+		GMNames.push_back(pSpawn->DisplayedName);
+		strcpy_s(szLastGMName, pSpawn->DisplayedName);
+		strcpy_s(szLastGMTime, DisplayTime());
+		strcpy_s(szLastGMDate, DisplayDate());
+		strcpy_s(szLastGMZone, "UNKNOWN");
+
+		if (pLocalPC)
 		{
-			if (pSpawn->GM && bGMCorpse ? pSpawn->Type == SPAWN_CORPSE : true)
+			int zoneid = (pLocalPC->zoneId & 0x7FFF);
+			if (zoneid <= MAX_ZONES)
 			{
-				if (!strlen(pSpawn->DisplayedName))
-					return;
-				GMNames.push_back(pSpawn->DisplayedName);
-				strcpy_s(szLastGMName, pSpawn->DisplayedName);
-				strcpy_s(szLastGMTime, DisplayTime());
-				strcpy_s(szLastGMDate, DisplayDate());
-				strcpy_s(szLastGMZone, "UNKNOWN");
-				if (pLocalPC)
-				{
-					int zoneid = (pLocalPC->zoneId & 0x7FFF);
-					if (zoneid <= MAX_ZONES)
-					{
-						strcpy_s(szLastGMZone, pWorldData->ZoneArray[zoneid]->LongName);
-					}
-				}
-				sprintf_s(szMsg, "\arGM %s \ayhas entered the zone at \ar%s", pSpawn->DisplayedName, DisplayTime());
-				sprintf_s(szPopup, "GM %s has entered the zone at %s", pSpawn->DisplayedName, DisplayTime());
-				if (bGMChatAlert)
-					WriteChatf("%s%s", PluginMsg.c_str(), szMsg);
-				if (!bGMCmdActive)
-				{
-					strcpy_s(szTmp, szGMEnterCmdIf);
-					if (MCEval(szTmp))
-					{
-						if (szGMEnterCmd[0])
-						{
-							if (szGMEnterCmd[0] == '/')
-							{
-								DoCommand((GetCharInfo() && GetCharInfo()->pSpawn) ? GetCharInfo()->pSpawn : NULL, szGMEnterCmd);
-								bGMCmdActive = true;
-							}
-						}
-					}
-				}
-				if (bGMPopup)
-					DisplayOverlayText(szPopup, CONCOLOR_RED, 100, 500, 500, 3000);
-				if (!bGMQuiet)
-				{
-					if (bGMSound)
-					{
-						GetPrivateProfileString(pSpawn->DisplayedName, "EnterSound", "", szTmp, MAX_STRING, INIFileName);
-						if (szTmp[0] && _FileExists(szTmp))
-							PlayGMSound(szTmp);
-						else
-							PlayGMSound(szEnterSound);
-					}
-					if (bGMBeep)
-					{
-						PlaySound(NULL, NULL, SND_NODEFAULT);
-						PlaySound("SystemAsterisk", NULL, SND_ALIAS | SND_ASYNC | SND_NODEFAULT);
-					}
-				}
+				strcpy_s(szLastGMZone, pWorldData->ZoneArray[zoneid]->LongName);
 			}
 		}
+
+		char szMsg[MAX_STRING] = { 0 };
+		sprintf_s(szMsg, "\arGM %s \ayhas entered the zone at \ar%s", pSpawn->DisplayedName, DisplayTime());
+
+		char szPopup[MAX_STRING];
+		sprintf_s(szPopup, "GM %s has entered the zone at %s", pSpawn->DisplayedName, DisplayTime());
+
+		if (bGMChatAlert)
+			WriteChatf("%s%s", PluginMsg.c_str(), szMsg);
+
+		if (!bGMCmdActive)
+		{
+			char szTmp[MAX_STRING] = { 0 };
+			strcpy_s(szTmp, szGMEnterCmdIf);
+			if (MCEval(szTmp) && szGMEnterCmd[0] && szGMEnterCmd[0] == '/')
+			{
+				DoCommand((GetCharInfo() && GetCharInfo()->pSpawn) ? GetCharInfo()->pSpawn : NULL, szGMEnterCmd);
+				bGMCmdActive = true;
+			}
+		}
+
+		if (!bGMQuiet && bGMSound)
+		{
+			char szTmp[MAX_STRING] = { 0 };
+			GetPrivateProfileString(pSpawn->DisplayedName, "EnterSound", "", szTmp, MAX_STRING, INIFileName);
+			if (szTmp[0] && _FileExists(szTmp))
+				PlayGMSound(szTmp);
+			else
+				PlayGMSound(szEnterSound);
+		}
+
+		if (!bGMQuiet && bGMBeep)
+		{
+			PlaySound(NULL, NULL, SND_NODEFAULT);
+			PlaySound("SystemAsterisk", NULL, SND_ALIAS | SND_ASYNC | SND_NODEFAULT);
+		}
+
+		if (bGMPopup)
+			DisplayOverlayText(szPopup, CONCOLOR_RED, 100, 500, 500, 3000);
 	}
 }
 
 PLUGIN_API VOID OnRemoveSpawn(PlayerClient* pSpawn)
 {
-	char szTmp[MAX_STRING] = { 0 };
-	char szMsg[MAX_STRING], szPopup[MAX_STRING];
-	bool GMFound = false;
-	if (bGMCheck)
+	if (bGMCheck && pSpawn && pSpawn->GM)
 	{
-		if (pSpawn)
+		bool GMFound = false;
+		for (unsigned int x = 0; x < GMNames.size(); x++)
 		{
-			if (pSpawn->GM)
+			std::string& VectorRef = GMNames[x];
+			if (!_stricmp(pSpawn->DisplayedName, VectorRef.c_str()))
 			{
-				for (unsigned int x = 0; x < GMNames.size(); x++)
-				{
-					std::string& VectorRef = GMNames[x];
-					if (!_stricmp(pSpawn->DisplayedName, VectorRef.c_str()))
-					{
-						GMNames.erase(GMNames.begin() + x);
-						GMFound = true;
-					}
-				}
-				if (!GMFound)
-					return;
-				sprintf_s(szMsg, "\agGM %s \ayhas left the zone at \ag%s", pSpawn->DisplayedName, DisplayTime());
-				sprintf_s(szPopup, "GM %s has left the zone at %s", pSpawn->DisplayedName, DisplayTime());
-				if (bGMChatAlert)
-					WriteChatf("%s%s",PluginMsg.c_str() ,szMsg);
-				if (GMNames.empty())
-				{
-					if (bGMCmdActive)
-					{
-						strcpy_s(szTmp, szGMLeaveCmdIf);
-						if (MCEval(szTmp))
-						{
-							if (szGMLeaveCmd[0])
-							{
-								if (szGMLeaveCmd[0] == '/')
-								{
-									DoCommand((GetCharInfo() && GetCharInfo()->pSpawn) ? GetCharInfo()->pSpawn : NULL, szGMLeaveCmd);
-									bGMCmdActive = false;
-								}
-							}
-						}
-					}
-				}
-				if (!bGMQuiet)
-				{
-					if (bGMSound)
-					{
-						GetPrivateProfileString(pSpawn->DisplayedName, "LeaveSound", "", szTmp, MAX_STRING, INIFileName);
-						if (szTmp[0] && _FileExists(szTmp))
-							PlayGMSound(szTmp);
-						else
-							PlayGMSound(szLeaveSound);
-					}
-					if (bGMBeep)
-					{
-						PlaySound(NULL, NULL, SND_NODEFAULT);
-						PlaySound("SystemDefault", NULL, SND_ALIAS | SND_ASYNC | SND_NODEFAULT);
-					}
-				}
-				if (bGMPopup)
-					DisplayOverlayText(szPopup, CONCOLOR_GREEN, 100, 500, 500, 3000);
+				GMNames.erase(GMNames.begin() + x);
+				GMFound = true;
 			}
+		}
+
+		if (!GMFound)
+			return;
+
+		if (bGMChatAlert)
+		{
+			char szMsg[MAX_STRING] = { 0 };
+			sprintf_s(szMsg, "\agGM %s \ayhas left the zone at \ag%s", pSpawn->DisplayedName, DisplayTime());
+			WriteChatf("%s%s", PluginMsg.c_str(), szMsg);
+		}
+
+		if (GMNames.empty() && bGMCmdActive)
+		{
+			char szTmp[MAX_STRING] = { 0 };
+			strcpy_s(szTmp, szGMLeaveCmdIf);
+			if (MCEval(szTmp) && szGMLeaveCmd[0] && szGMLeaveCmd[0] == '/')
+			{
+				DoCommand((GetCharInfo() && GetCharInfo()->pSpawn) ? GetCharInfo()->pSpawn : NULL, szGMLeaveCmd);
+				bGMCmdActive = false;
+			}
+		}
+
+		if (!bGMQuiet && bGMSound)
+		{
+			char szTmp[MAX_STRING] = { 0 };
+			GetPrivateProfileString(pSpawn->DisplayedName, "LeaveSound", "", szTmp, MAX_STRING, INIFileName);
+			if (szTmp[0] && _FileExists(szTmp))
+				PlayGMSound(szTmp);
+			else
+				PlayGMSound(szLeaveSound);
+		}
+
+		if (!bGMQuiet && bGMBeep)
+		{
+			PlaySound(NULL, NULL, SND_NODEFAULT);
+			PlaySound("SystemDefault", NULL, SND_ALIAS | SND_ASYNC | SND_NODEFAULT);
+		}
+
+		if (bGMPopup)
+		{
+			char szPopup[MAX_STRING] = { 0 };
+			sprintf_s(szPopup, "GM %s has left the zone at %s", pSpawn->DisplayedName, DisplayTime());
+			DisplayOverlayText(szPopup, CONCOLOR_GREEN, 100, 500, 500, 3000);
 		}
 	}
 }
@@ -1088,5 +1084,5 @@ PLUGIN_API VOID OnEndZone()
 
 PLUGIN_API VOID OnZoned()
 {
-	bGMQuiet = FALSE;
+	bGMQuiet = false;
 }
