@@ -868,7 +868,7 @@ void GMCheckCmd(PSPAWNINFO pChar, PCHAR szLine)
 		GMCheckStatus(true);
 }
 
-PLUGIN_API VOID InitializePlugin(VOID)
+PLUGIN_API VOID InitializePlugin()
 {
 	DebugSpewAlways("Initializing MQ2GMCheck");
 	char szTmp[MAX_STRING] = { 0 }, szTemp[MAX_STRING] = { 0 };
@@ -905,7 +905,7 @@ PLUGIN_API VOID InitializePlugin(VOID)
 		bGMAlert = GMCheck();
 }
 
-PLUGIN_API VOID ShutdownPlugin(VOID)
+PLUGIN_API VOID ShutdownPlugin()
 {
 	WriteChatf("\ayMQ2GMCheck: \amUnloading plugin.");
 	DebugSpewAlways("Shutting down MQ2GMCheck");
@@ -917,7 +917,7 @@ PLUGIN_API VOID ShutdownPlugin(VOID)
 		waveOutSetVolume(NULL, dwVolume);
 }
 
-PLUGIN_API VOID OnPulse(VOID)
+PLUGIN_API VOID OnPulse()
 {
 	char szTmp[MAX_STRING] = { 0 }, szNames[MAX_STRING];
 	if (bVolSet && StopSoundTimer && GetTickCount() >= StopSoundTimer)
@@ -1105,12 +1105,12 @@ PLUGIN_API VOID OnRemoveSpawn(PSPAWNINFO pSpawn)
 	}
 }
 
-PLUGIN_API VOID OnEndZone(VOID)
+PLUGIN_API VOID OnEndZone()
 {
 	GMNames.clear();
 }
 
-PLUGIN_API VOID OnZoned(VOID)
+PLUGIN_API VOID OnZoned()
 {
 	bGMQuiet = FALSE;
 }
