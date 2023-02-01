@@ -723,7 +723,7 @@ void GMSS(char* szLine)
 
 void UpdateAlerts()
 {
-	PSPAWNINFO pSpawn;
+	PlayerClient* pSpawn;
 	unsigned long Tmp;
 	unsigned int index;
 	char szTmp[MAX_STRING], szMsg[MAX_STRING], szPopup[MAX_STRING];
@@ -739,7 +739,7 @@ void UpdateAlerts()
 	while (index < GMNames.size())
 	{
 		std::string& VectorRef = GMNames[index];
-		pSpawn = (PSPAWNINFO)GetSpawnByName((char*)VectorRef.c_str());
+		pSpawn = GetSpawnByName(VectorRef.c_str());
 		if (pSpawn && pSpawn->GM)
 			index++;
 		else
@@ -789,7 +789,7 @@ void UpdateAlerts()
 	}
 }
 
-void GMCheckCmd(PSPAWNINFO pChar, PCHAR szLine)
+void GMCheckCmd(PlayerClient* pChar, char* szLine)
 {
 	char szArg1[MAX_STRING], szArg2[MAX_STRING];
 	GetArg(szArg1, szLine, 1);
@@ -971,7 +971,7 @@ PLUGIN_API VOID OnPulse()
 	}
 }
 
-PLUGIN_API VOID OnAddSpawn(PSPAWNINFO pSpawn)
+PLUGIN_API VOID OnAddSpawn(PlayerClient* pSpawn)
 {
 	char szTmp[MAX_STRING] = { 0 };
 	char szMsg[MAX_STRING], szPopup[MAX_STRING];
@@ -1038,7 +1038,7 @@ PLUGIN_API VOID OnAddSpawn(PSPAWNINFO pSpawn)
 	}
 }
 
-PLUGIN_API VOID OnRemoveSpawn(PSPAWNINFO pSpawn)
+PLUGIN_API VOID OnRemoveSpawn(PlayerClient* pSpawn)
 {
 	char szTmp[MAX_STRING] = { 0 };
 	char szMsg[MAX_STRING], szPopup[MAX_STRING];
