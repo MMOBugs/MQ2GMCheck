@@ -102,7 +102,6 @@ public:
 		using namespace mq::datatypes;
 
 		char szTmp[MAX_STRING] = { 0 };
-		unsigned int x;
 		long lResult;
 		MQTypeMember* pMember = MQ2GMCheckType::FindMember(Member);
 		if (!pMember)
@@ -119,12 +118,12 @@ public:
 			return true;
 		case GMCheckMembers::Names:
 			szTmp[0] = 0;
-			for (x = 0; x < GMNames.size(); x++)
+			for (std::string GMName : GMNames)
 			{
-				std::string& VectorRef = GMNames[x];
 				if (szTmp[0])
 					strcat_s(szTmp, ", ");
-				strcat_s(szTmp, VectorRef.c_str());
+
+				strcat_s(szTmp, GMName.c_str());
 			}
 			if (szTmp[0])
 				strcpy_s(DataTypeTemp, szTmp);
@@ -945,18 +944,19 @@ PLUGIN_API VOID OnPulse(VOID)
 					if (!bGMCheck)
 						return;
 					szNames[0] = 0;
-					for (unsigned int x = 0; x < GMNames.size(); x++)
+					for (const std::string GMName : GMNames)
 					{
 						if (strlen(szNames) > 500)
 						{
 							strcat_s(szNames, " ...");
 							break;
 						}
-						std::string& VectorRef = GMNames[x];
+
 						if (szNames[0])
 							strcat_s(szNames, "\am, ");
+
 						strcat_s(szNames, "\ag");
-						strcat_s(szNames, VectorRef.c_str());
+						strcat_s(szNames, GMName.c_str());
 					}
 					sprintf_s(szTmp, "\arGM ALERT!!  \ayGM in zone.  \at(%s\at)", szNames);
 					if (bGMChatAlert)
