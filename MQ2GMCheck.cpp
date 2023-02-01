@@ -257,14 +257,6 @@ public:
 	}
 };
 
-bool IsGMCorpse(BYTE bType)
-{
-	if (bGMCorpse)
-		if (bType == SPAWN_CORPSE)
-			return true;
-	return false;
-}
-
 void GMCheckStatus(bool MentionHelp = false)
 {
 	WriteChatf("\at%s \agv%1.2f", PluginName.c_str(), MQ2Version);
@@ -1006,7 +998,7 @@ PLUGIN_API VOID OnAddSpawn(PlayerClient* pSpawn)
 	{
 		if (pSpawn)
 		{
-			if (pSpawn->GM && !IsGMCorpse(pSpawn->Type))
+			if (pSpawn->GM && bGMCorpse ? pSpawn->Type == SPAWN_CORPSE : true)
 			{
 				if (!strlen(pSpawn->DisplayedName))
 					return;
