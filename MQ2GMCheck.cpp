@@ -28,6 +28,7 @@ unsigned long Check_PulseCount = 0, Update_PulseCount = 0, Reminder_Interval = 0
 bool bGMAlert = false, bGMCheck = true, bGMQuiet = false, bGMSound = true, bGMBeep = false, bGMPopup = false, bGMCorpse = false,
 	bGMCmdActive = false, bVolSet = false, bGMChatAlert = true;
 std::vector<std::string> GMNames;
+	const std::string PluginName = "MQ2GMCheck";
 
 bool GMCheck()
 {
@@ -249,7 +250,7 @@ bool IsGMCorpse(BYTE bType)
 
 void GMCheckStatus(bool MentionHelp = false)
 {
-	WriteChatf("\at%s \agv%1.2f", PLUGIN_NAME, MQ2Version);
+	WriteChatf("\at%s \agv%1.2f", PluginName.c_str(), MQ2Version);
 	if (Reminder_Interval)
 		WriteChatf("  \ar- \atGM Check is: %s \at(Chat: %s \at- Sound: %s \at- Beep: %s \at- Popup: %s \at- Corpses: %s\at) - Reminder Interval: \ag%u \atsecs", bGMCheck ? "\agON" : "\arOFF", bGMChatAlert ? "\agON" : "\arOFF", bGMSound ? "\agON" : "\arOFF", bGMBeep ? "\agON" : "\arOFF", bGMPopup ? "\agON" : "\arOFF", bGMCorpse ? "\agIGNORED" : "\arINCLUDED", (int)(Reminder_Interval / 1000));
 	else
@@ -899,7 +900,6 @@ PLUGIN_API VOID InitializePlugin(VOID)
 	AddMQ2Data("GMCheck", MQ2GMCheckType::dataGMCheck);
 	pGMCheckType = new MQ2GMCheckType;
 	ReadSettings();
-	MMORequiredAccess = AL_Registered;
 	AddCommand("/gmcheck", GMCheckCmd);
 	if (gGameState == GAMESTATE_INGAME)
 		bGMAlert = GMCheck();
