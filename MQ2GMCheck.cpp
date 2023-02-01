@@ -30,11 +30,10 @@ namespace GMCheckSpace {
 		szLastGMZone[MAX_STRING] = { 0 }, szGMEnterCmd[MAX_STRING] = { 0 }, szGMEnterCmdIf[MAX_STRING] = { 0 },
 		szGMLeaveCmd[MAX_STRING] = { 0 }, szGMLeaveCmdIf[MAX_STRING] = { 0 };
 
-
-	uint32_t Check_PulseCount = 0, Reminder_Interval = 0, StopSoundTimer = 0,
+	uint32_t  Reminder_Interval = 0,
 		bmMQ2GMCheck = 0;
 
-	uint64_t Update_PulseCount = 0;
+	uint64_t Check_PulseCount = 0, Update_PulseCount = 0, StopSoundTimer = 0;
 
 	DWORD dwVolume, NewVol;
 
@@ -400,8 +399,10 @@ void PlayGMSound(char* pFileName)
 			waveOutSetVolume(NULL, NewVol);
 		}
 	}
+
 	_splitpath_s(pFileName, drive, dir, fname, ext);
 	bool bFound = false;
+
 	if (!_stricmp(ext, ".mp3"))
 	{
 		sprintf_s(lpszOpenCommand, "Open %s type MPEGVideo Alias mySound", pFileName);
@@ -414,6 +415,7 @@ void PlayGMSound(char* pFileName)
 		sprintf_s(lpszPlayCommand, "play mySound from 0 to 9000 notify");
 		bFound = true;
 	}
+
 	if (bFound)
 	{
 		int error = mciSendString(lpszOpenCommand, NULL, 0, NULL);
@@ -423,9 +425,10 @@ void PlayGMSound(char* pFileName)
 			if (!error)
 			{
 				if ((unsigned)GetIntFromString(szMsg, 0) < 9000)
-					StopSoundTimer = GetTickCount() + (unsigned)GetIntFromString(szMsg, 0);
+					StopSoundTimer = MQGetTickCount64() + (unsigned)GetIntFromString(szMsg, 0);
 				else
-					StopSoundTimer = GetTickCount() + 9000;
+					StopSoundTimer = MQGetTickCount64() + 9000;
+
 				if (!_stricmp(ext, ".mp3"))
 				{
 					if ((unsigned)GetIntFromString(szMsg, 0) < 9000)
@@ -436,9 +439,11 @@ void PlayGMSound(char* pFileName)
 					if ((unsigned)GetIntFromString(szMsg, 0) < 9000)
 						sprintf_s(lpszPlayCommand, "play mySound from 0 notify");
 				}
+
 				error = mciSendString(lpszPlayCommand, NULL, 0, NULL);
 			}
 		}
+
 		if (error)
 			bFound = false;
 	}
@@ -447,19 +452,21 @@ void PlayGMSound(char* pFileName)
 	{
 		PlaySound(NULL, NULL, SND_NODEFAULT);
 		PlaySound("SystemDefault", NULL, SND_ALIAS | SND_ASYNC | SND_NODEFAULT);
-		StopSoundTimer = GetTickCount() + 1000;
+		StopSoundTimer = MQGetTickCount64() + 1000;
 	}
 }
 
 void ToggleBool(char* szLine, bool* theOption, char* msg) {
 	char szArg[MAX_STRING] = { 0 };
 	GetArg(szArg, szLine, 1);
+
 	if (!szArg[0])
 		*theOption = !*theOption;
 	else if (!_strnicmp(szArg, "on", 2))
 		*theOption = true;
 	else if (!_strnicmp(szArg, "off", 3))
 		*theOption = false;
+
 	WriteChatf("%s\am%s is now %s", PluginMsg.c_str(), *theOption ? "\agEnabled" : "\arDISABLED");
 }
 
@@ -691,10 +698,10 @@ void UpdateAlerts()
 	if (gGameState != GAMESTATE_INGAME)
 		return;
 
-	if (GetTickCount64() < Update_PulseCount + 15000)
+	if (MQGetTickCount64() < Update_PulseCount + 15000)
 		return;
 
-	Update_PulseCount = GetTickCount64();
+	Update_PulseCount = MQGetTickCount64();
 	uint32_t index = 0;
 	for (std::string GMName : GMNames)
 	{
@@ -861,8 +868,8 @@ PLUGIN_API VOID InitializePlugin()
 	strcpy_s(szLastGMDate, "NEVER");
 	strcpy_s(szLastGMZone, "NONE");
 	GMNames.clear();
-	Check_PulseCount = GetTickCount();
-	Update_PulseCount = GetTickCount();
+	Check_PulseCount = MQGetTickCount64();
+	Update_PulseCount = MQGetTickCount64();
 	AddMQ2Data("GMCheck", MQ2GMCheckType::dataGMCheck);
 	bmMQ2GMCheck = AddMQ2Benchmark(PluginName.c_str());
 	pGMCheckType = new MQ2GMCheckType;
@@ -889,7 +896,7 @@ PLUGIN_API VOID OnPulse()
 {
 	MQScopedBenchmark bm(bmMQ2GMCheck);
 	char szTmp[MAX_STRING] = { 0 }, szNames[MAX_STRING];
-	if (bVolSet && StopSoundTimer && GetTickCount() >= StopSoundTimer)
+	if (bVolSet && StopSoundTimer && MQGetTickCount64() >= StopSoundTimer)
 	{
 		StopSoundTimer = 0;
 		waveOutSetVolume(NULL, dwVolume);
@@ -900,10 +907,10 @@ PLUGIN_API VOID OnPulse()
 	if (gGameState == GAMESTATE_INGAME)
 	{
 		UpdateAlerts();
-		Tmp = GetTickCount();
+		Tmp = MQGetTickCount64();
 		if (Tmp >= Check_PulseCount + Reminder_Interval && Reminder_Interval)
 		{
-			Check_PulseCount = GetTickCount();
+			Check_PulseCount = MQGetTickCount64();
 			if (bGMAlert = GMCheck())
 			{
 				if (!bGMQuiet)
