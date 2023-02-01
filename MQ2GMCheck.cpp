@@ -766,7 +766,7 @@ void UpdateAlerts()
 			{
 				if (bGMCmdActive)
 				{
-					strcpy_s(szTmp, szGMEnterCmdIf);
+					strcpy_s(szTmp, szGMLeaveCmdIf);
 					if (MCEval(szTmp))
 					{
 						if (szGMLeaveCmd[0])
@@ -1090,7 +1090,7 @@ PLUGIN_API VOID OnRemoveSpawn(PlayerClient* pSpawn)
 				{
 					if (bGMCmdActive)
 					{
-						strcpy_s(szTmp, szGMEnterCmdIf);
+						strcpy_s(szTmp, szGMLeaveCmdIf);
 						if (MCEval(szTmp))
 						{
 							if (szGMLeaveCmd[0])
