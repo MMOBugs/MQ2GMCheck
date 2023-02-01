@@ -934,6 +934,7 @@ PLUGIN_API VOID InitializePlugin()
 	Check_PulseCount = GetTickCount();
 	Update_PulseCount = GetTickCount();
 	AddMQ2Data("GMCheck", MQ2GMCheckType::dataGMCheck);
+	bmMQ2GMCheck = AddMQ2Benchmark(PluginName.c_str());
 	pGMCheckType = new MQ2GMCheckType;
 	ReadSettings();
 	AddCommand("/gmcheck", GMCheckCmd);
@@ -948,6 +949,7 @@ PLUGIN_API VOID ShutdownPlugin()
 	RemoveCommand("/gmcheck");
 	GMNames.clear();
 	RemoveMQ2Data("GMCheck");
+	RemoveMQ2Benchmark(bmMQ2GMCheck);
 	delete pGMCheckType;
 	if (bVolSet)
 		waveOutSetVolume(NULL, dwVolume);
@@ -955,6 +957,7 @@ PLUGIN_API VOID ShutdownPlugin()
 
 PLUGIN_API VOID OnPulse()
 {
+	MQScopedBenchmark bm(bmMQ2GMCheck);
 	char szTmp[MAX_STRING] = { 0 }, szNames[MAX_STRING];
 	if (bVolSet && StopSoundTimer && GetTickCount() >= StopSoundTimer)
 	{
