@@ -868,28 +868,36 @@ void GMCheckCmd(PlayerClient* pChar, char* szLine)
 		GMCheckStatus(true);
 }
 
+void GetValuesFromINI()
+{
+	char szTemp[MAX_STRING] = { 0 };
+	DWORD i = -1;
+	float x = 0;
+
+	//LeftVolume
+	i = (DWORD)GetPrivateProfileInt("Settings", "LeftVolume", 50, INIFileName);
+	if (i > 100 || i < 0)
+		i = 50;
+
+	WritePrivateProfileInt("Settings", "LeftVolume", i, INIFileName);
+	x = (float)65535.0 * ((float)i / (float)100.0);
+	NewVol = (DWORD)x;
+
+	//RightVolume
+	i = (DWORD)GetPrivateProfileInt("Settings", "RightVolume", 50, INIFileName);
+	if (i > 100 || i < 0)
+		i = 50;
+
+	WritePrivateProfileInt("Settings", "RightVolume", i, INIFileName);
+	x = (float)65535.0 * ((float)i / (float)100.0);
+	NewVol = NewVol + (((DWORD)x) << 16);
+}
+
 PLUGIN_API VOID InitializePlugin()
 {
 	DebugSpewAlways("Initializing MQ2GMCheck");
-	char szTmp[MAX_STRING] = { 0 }, szTemp[MAX_STRING] = { 0 };
-	DWORD i;
-	float x;
-	GetPrivateProfileString("Settings", "LeftVolume", "50", szTmp, MAX_STRING, INIFileName);
-	i = atoi(szTmp);
-	if (i < 0 || i>100)
-		i = 50;
-	_itoa_s(i, szTemp, 10);
-	WritePrivateProfileString("Settings", "LeftVolume", szTemp, INIFileName);
-	x = (float)65535.0 * ((float)i / (float)100.0);
-	NewVol = (DWORD)x;
-	GetPrivateProfileString("Settings", "RightVolume", "50", szTmp, MAX_STRING, INIFileName);
-	i = atoi(szTmp);
-	if (i < 0 || i>100)
-		i = 50;
-	_itoa_s(i, szTemp, 10);
-	WritePrivateProfileString("Settings", "RightVolume", szTemp, INIFileName);
-	x = (float)65535.0 * ((float)i / (float)100.0);
-	NewVol = NewVol + (((DWORD)x) << 16);
+	GetValuesFromINI();
+
 	strcpy_s(szLastGMName, "NONE");
 	strcpy_s(szLastGMTime, "NEVER");
 	strcpy_s(szLastGMDate, "NEVER");
