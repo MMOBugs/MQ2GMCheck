@@ -52,14 +52,15 @@ bool GMCheck()
 	return !GMNames.empty() ? true : false;
 }
 
-long MCEval(const char* zBuffer)
+int MCEval(const char* zBuffer)
 {
 	char zOutput[MAX_STRING] = { 0 };
 	if (!zBuffer[0])
 		return 1;
+
 	strcpy_s(zOutput, zBuffer);
 	ParseMacroData(zOutput, MAX_STRING);
-	return atoi(zOutput);
+	return GetIntFromString(zOutput, 0);
 }
 
 class MQ2GMCheckType* pGMCheckType = nullptr;
@@ -120,7 +121,7 @@ public:
 		using namespace mq::datatypes;
 
 		char szTmp[MAX_STRING] = { 0 };
-		long lResult;
+		int lResult;
 		MQTypeMember* pMember = MQ2GMCheckType::FindMember(Member);
 		if (!pMember)
 			return false;
@@ -421,18 +422,18 @@ void PlayGMSound(char* pFileName)
 			error = mciSendString("status mySound length", szMsg, MAX_STRING, NULL);
 			if (!error)
 			{
-				if ((unsigned)atoi(szMsg) < 9000)
-					StopSoundTimer = GetTickCount() + (unsigned)atoi(szMsg);
+				if ((unsigned)GetIntFromString(szMsg, 0) < 9000)
+					StopSoundTimer = GetTickCount() + (unsigned)GetIntFromString(szMsg, 0);
 				else
 					StopSoundTimer = GetTickCount() + 9000;
 				if (!_stricmp(ext, ".mp3"))
 				{
-					if ((unsigned)atoi(szMsg) < 9000)
+					if ((unsigned)GetIntFromString(szMsg, 0) < 9000)
 						sprintf_s(lpszPlayCommand, "play mySound from 0 notify");
 				}
 				else
 				{
-					if ((unsigned)atoi(szMsg) < 9000)
+					if ((unsigned)GetIntFromString(szMsg, 0) < 9000)
 						sprintf_s(lpszPlayCommand, "play mySound from 0 notify");
 				}
 				error = mciSendString(lpszPlayCommand, NULL, 0, NULL);
@@ -558,9 +559,10 @@ void GMReminder(char* szLine)
 		return;
 	}
 
-	Reminder_Interval = atoi(Interval) * 1000;
+	Reminder_Interval = GetIntFromString(Interval, 0) * 1000;
 	if (Reminder_Interval < 10000 && Reminder_Interval)
 		Reminder_Interval = 10000;
+
 	if (Reminder_Interval)
 		WriteChatf("%s\aw: Reminder interval set to \ar%u \awseconds.  Remember to use \ay/gmsave \awif you want this to be a permanent change.", Reminder_Interval / 1000, PluginMsg.c_str());
 	else
@@ -615,7 +617,7 @@ void GMTest(char* szLine)
 		sprintf_s(szPopup, "(TEST) GM %s has entered the zone at %s", GetCharInfo()->Name, DisplayTime());
 		WriteChatf("%s%s", PluginMsg.c_str(), szMsg);
 		strcpy_s(szTmp, szGMEnterCmdIf);
-		long lResult = MCEval(szTmp);
+		int lResult = MCEval(szTmp);
 		WriteChatf("%s\at(If first GM entered zone): GMEnterCmdIf evaluates to %s\at.  Plugin would %s \atGMEnterCmd: \am%s",
 			PluginMsg.c_str(),
 			lResult ? "\agTRUE" : "\arFALSE", lResult ? (szGMEnterCmd[0] ? (szGMEnterCmd[0] == '/' ? "\agEXECUTE" : "\arNOT EXECUTE") : "\arNOT EXECUTE") : "\arNOT EXECUTE",
@@ -647,7 +649,7 @@ void GMTest(char* szLine)
 		sprintf_s(szPopup, "(TEST) GM %s has left the zone at %s", GetCharInfo()->Name, DisplayTime());
 		WriteChatf("%s%s", PluginMsg.c_str(), szMsg);
 		strcpy_s(szTmp, szGMLeaveCmdIf);
-		long lResult = MCEval(szTmp);
+		int lResult = MCEval(szTmp);
 		WriteChatf("%s\at(If last GM left zone): GMLeaveCmdIf evaluates to %s\at.  Plugin would %s \atGMLeaveCmd: \am%s",
 			PluginMsg.c_str(),
 			lResult ? "\agTRUE" : "\arFALSE",
