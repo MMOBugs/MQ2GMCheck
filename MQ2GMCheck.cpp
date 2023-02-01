@@ -31,8 +31,10 @@ namespace GMCheckSpace {
 		szGMLeaveCmd[MAX_STRING] = { 0 }, szGMLeaveCmdIf[MAX_STRING] = { 0 };
 
 
-	uint32_t Check_PulseCount = 0, Update_PulseCount = 0, Reminder_Interval = 0, StopSoundTimer = 0,
+	uint32_t Check_PulseCount = 0, Reminder_Interval = 0, StopSoundTimer = 0,
 		bmMQ2GMCheck = 0;
+
+	uint64_t Update_PulseCount = 0;
 
 	DWORD dwVolume, NewVol;
 
@@ -742,69 +744,64 @@ void GMSS(char* szLine)
 
 void UpdateAlerts()
 {
-	PlayerClient* pSpawn;
-	uint32_t Tmp;
-	uint32_t index;
-	char szTmp[MAX_STRING], szMsg[MAX_STRING], szPopup[MAX_STRING];
 	if (GMNames.empty())
 		return;
+
 	if (gGameState != GAMESTATE_INGAME)
 		return;
-	Tmp = GetTickCount();
-	if (Tmp < Update_PulseCount + 15000)
+
+	if (GetTickCount64() < Update_PulseCount + 15000)
 		return;
-	Update_PulseCount = GetTickCount();
-	index = 0;
-	while (index < GMNames.size())
+
+	Update_PulseCount = GetTickCount64();
+	uint32_t index = 0;
+	for (std::string GMName : GMNames)
 	{
-		std::string& VectorRef = GMNames[index];
-		pSpawn = GetSpawnByName(VectorRef.c_str());
-		if (pSpawn && pSpawn->GM)
+		char szTmp[MAX_STRING] = { 0 };
+		PlayerClient* pSpawn = GetSpawnByName(GMName.c_str());
+		if (pSpawn && pSpawn->GM) {
 			index++;
-		else
-		{
-			sprintf_s(szMsg, "\agGM %s \ayhas left the zone at \ag%s", VectorRef.c_str(), DisplayTime());
-			sprintf_s(szPopup, "GM %s has left the zone at %s", VectorRef.c_str(), DisplayTime());
-			if (bGMChatAlert)
-				WriteChatf("%s%s", PluginMsg.c_str(), szMsg);
-			if (GMNames.empty())
-			{
-				if (bGMCmdActive)
-				{
-					strcpy_s(szTmp, szGMLeaveCmdIf);
-					if (MCEval(szTmp))
-					{
-						if (szGMLeaveCmd[0])
-						{
-							if (szGMLeaveCmd[0] == '/')
-							{
-								DoCommand((GetCharInfo() && GetCharInfo()->pSpawn) ? GetCharInfo()->pSpawn : NULL, szGMLeaveCmd);
-								bGMCmdActive = false;
-							}
-						}
-					}
-				}
-			}
-			if (!bGMQuiet)
-			{
-				if (bGMSound)
-				{
-					GetPrivateProfileString(VectorRef.c_str(), "LeaveSound", "", szTmp, MAX_STRING, INIFileName);
-					if (szTmp[0] && _FileExists(szTmp))
-						PlayGMSound(szTmp);
-					else
-						PlayGMSound(szLeaveSound);
-				}
-				if (bGMBeep)
-				{
-					PlaySound(NULL, NULL, SND_NODEFAULT);
-					PlaySound("SystemDefault", NULL, SND_ALIAS | SND_ASYNC | SND_NODEFAULT);
-				}
-			}
-			if (bGMPopup)
-				DisplayOverlayText(szPopup, CONCOLOR_GREEN, 100, 500, 500, 3000);
-			GMNames.erase(GMNames.begin() + index);
+			continue;
 		}
+
+		if (bGMChatAlert) {
+			char szMsg[MAX_STRING] = { 0 };
+			sprintf_s(szMsg, "\agGM %s \ayhas left the zone at \ag%s", GMName.c_str(), DisplayTime());
+			WriteChatf("%s%s", PluginMsg.c_str(), szMsg);
+		}
+
+		if (GMNames.empty() && bGMCmdActive) {
+			strcpy_s(szTmp, szGMLeaveCmdIf);
+			if (MCEval(szTmp)) {
+				if (szGMLeaveCmd[0] && szGMLeaveCmd[0] == '/') {
+						DoCommand((GetCharInfo() && GetCharInfo()->pSpawn) ? GetCharInfo()->pSpawn : NULL, szGMLeaveCmd);
+						bGMCmdActive = false;
+				}
+			}
+		}
+
+		if (!bGMQuiet) {
+			if (bGMSound) {
+				GetPrivateProfileString(GMName.c_str(), "LeaveSound", "", szTmp, MAX_STRING, INIFileName);
+				if (szTmp[0] && _FileExists(szTmp))
+					PlayGMSound(szTmp);
+				else
+					PlayGMSound(szLeaveSound);
+			}
+
+			if (bGMBeep) {
+				PlaySound(NULL, NULL, SND_NODEFAULT);
+				PlaySound("SystemDefault", NULL, SND_ALIAS | SND_ASYNC | SND_NODEFAULT);
+			}
+		}
+
+		if (bGMPopup) {
+			char szPopup[MAX_STRING];
+			sprintf_s(szPopup, "GM %s has left the zone at %s", GMName.c_str(), DisplayTime());
+			DisplayOverlayText(szPopup, CONCOLOR_GREEN, 100, 500, 500, 3000);
+		}
+
+		GMNames.erase(GMNames.begin() + index);
 	}
 }
 
