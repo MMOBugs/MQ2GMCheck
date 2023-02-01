@@ -21,15 +21,29 @@ PLUGIN_VERSION(4.00);
 
 #pragma comment(lib,"winmm.lib")
 
-char szEnterSound[MAX_STRING] = { 0 }, szLeaveSound[MAX_STRING] = { 0 }, szRemindSound[MAX_STRING] = { 0 }, szLastGMName[MAX_STRING] = { 0 },
-	szLastGMTime[MAX_STRING] = { 0 }, szLastGMDate[MAX_STRING] = { 0 }, szLastGMZone[MAX_STRING] = { 0 }, szGM[50] = { 0 },
-	szGMEnterCmd[MAX_STRING] = { 0 }, szGMEnterCmdIf[MAX_STRING] = { 0 }, szGMLeaveCmd[MAX_STRING] = { 0 }, szGMLeaveCmdIf[MAX_STRING] = { 0 };
-unsigned long Check_PulseCount = 0, Update_PulseCount = 0, Reminder_Interval = 0, StopSoundTimer = 0, dwVolume, NewVol;;
-bool bGMAlert = false, bGMCheck = true, bGMQuiet = false, bGMSound = true, bGMBeep = false, bGMPopup = false, bGMCorpse = false,
-	bGMCmdActive = false, bVolSet = false, bGMChatAlert = true;
-std::vector<std::string> GMNames;
-	const std::string PluginMsg = "/ay[MQ2GMCheck] ";
+namespace GMCheckSpace {
 	const std::string PluginName = "MQ2GMCheck";
+	const std::string PluginMsg = "/ay[MQ2GMCheck] ";
+
+	char szEnterSound[MAX_STRING] = { 0 }, szLeaveSound[MAX_STRING] = { 0 }, szRemindSound[MAX_STRING] = { 0 },
+		szLastGMName[MAX_STRING] = { 0 }, szLastGMTime[MAX_STRING] = { 0 }, szLastGMDate[MAX_STRING] = { 0 },
+		szLastGMZone[MAX_STRING] = { 0 }, szGMEnterCmd[MAX_STRING] = { 0 }, szGMEnterCmdIf[MAX_STRING] = { 0 },
+		szGMLeaveCmd[MAX_STRING] = { 0 }, szGMLeaveCmdIf[MAX_STRING] = { 0 };
+
+
+	uint32_t Check_PulseCount = 0, Update_PulseCount = 0, Reminder_Interval = 0, StopSoundTimer = 0,
+		bmMQ2GMCheck = 0;
+
+	DWORD dwVolume, NewVol;
+
+	bool bGMAlert = false, bGMCheck = true, bGMQuiet = false, bGMSound = true, bGMBeep = false,
+		bGMPopup = false, bGMCorpse = false, bGMCmdActive = false, bVolSet = false,
+		bGMChatAlert = true;
+
+	std::vector<std::string> GMNames;
+}
+
+using namespace GMCheckSpace;
 
 bool GMCheck()
 {
