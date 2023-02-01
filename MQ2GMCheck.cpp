@@ -289,76 +289,67 @@ void GMCheckStatus(bool MentionHelp = false)
 
 void ReadSettings()
 {
-	char szTemp[MAX_STRING], szDefaultEnter[MAX_STRING], szDefaultLeave[MAX_STRING], szDefaultRemind[MAX_STRING];
-
-	if (GetPrivateProfileString("Settings", "RemInt", NULL, szTemp, MAX_STRING, INIFileName))
-		Reminder_Interval = atoi(szTemp) * 1000;
+	//Reminder Interval
+	Reminder_Interval = GetPrivateProfileInt("Settings", "RemInt", 0, INIFileName);
+	if (Reminder_Interval)
+		Reminder_Interval *= 1000;
 	else
 		Reminder_Interval = 30000;
+
 	if (Reminder_Interval < 10000 && Reminder_Interval)
 		Reminder_Interval = 10000;
 
-	if (GetPrivateProfileString("Settings", "GMCheck", NULL, szTemp, MAX_STRING, INIFileName))
-		if (!_stricmp(szTemp, "on"))
-			bGMCheck = true;
-		else
-			bGMCheck = false;
+	bGMCheck = GetPrivateProfileBool("Settings", "GMCheck", false, INIFileName);
+	bGMSound = GetPrivateProfileBool("Settings", "GMSound", false, INIFileName);
+	bGMCorpse = GetPrivateProfileBool("Settings", "GMCorpse", false, INIFileName);
+	bGMBeep = GetPrivateProfileBool("Settings", "GMBeep", false, INIFileName);
+	bGMPopup = GetPrivateProfileBool("Settings", "GMPopup", false, INIFileName);
+	bGMChatAlert = GetPrivateProfileBool("Settings", "GMChat", false, INIFileName);
 
-	if (GetPrivateProfileString("Settings", "GMSound", NULL, szTemp, MAX_STRING, INIFileName))
-		if (!_stricmp(szTemp, "on"))
-			bGMSound = true;
-		else
-			bGMSound = false;
+	{//DefaultEnter
+		char szDefaultEnter[MAX_STRING] = { 0 };
 
-	if (GetPrivateProfileString("Settings", "GMCorpse", NULL, szTemp, MAX_STRING, INIFileName))
-		if (!_stricmp(szTemp, "on"))
-			bGMCorpse = true;
-		else
-			bGMCorpse = false;
-
-	if (GetPrivateProfileString("Settings", "GMBeep", NULL, szTemp, MAX_STRING, INIFileName))
-		if (!_stricmp(szTemp, "on"))
-			bGMBeep = true;
-		else
-			bGMBeep = false;
-
-	if (GetPrivateProfileString("Settings", "GMPopup", NULL, szTemp, MAX_STRING, INIFileName))
-		if (!_stricmp(szTemp, "on"))
-			bGMPopup = true;
-		else
-			bGMPopup = false;
-
-	if (GetPrivateProfileString("Settings", "GMChat", NULL, szTemp, MAX_STRING, INIFileName))
-		if (!_stricmp(szTemp, "on"))
-			bGMChatAlert = true;
-		else
-			bGMChatAlert = false;
-
-	sprintf_s(szDefaultEnter, "%s\\Sounds\\gmenter.mp3", gPathResources);
-	sprintf_s(szDefaultLeave, "%s\\Sounds\\gmleave.mp3", gPathResources);
-	sprintf_s(szDefaultRemind, "%s\\Sounds\\gmremind.mp3", gPathResources);
-	if (!_FileExists(szDefaultEnter))
-	{
-		sprintf_s(szDefaultEnter, "%s\\Sounds\\gmenter.wav", gPathResources);
-		sprintf_s(szDefaultLeave, "%s\\Sounds\\gmleave.wav", gPathResources);
-		sprintf_s(szDefaultRemind, "%s\\Sounds\\gmremind.wav", gPathResources);
-	}
-	if (!_FileExists(szDefaultEnter))
-	{
 		sprintf_s(szDefaultEnter, "%s\\Sounds\\gmenter.mp3", gPathResources);
-		sprintf_s(szDefaultLeave, "%s\\Sounds\\gmleave.mp3", gPathResources);
-		sprintf_s(szDefaultRemind, "%s\\Sounds\\gmremind.mp3", gPathResources);
-	}
-	GetPrivateProfileString("Settings", "EnterSound", szDefaultEnter, szEnterSound, MAX_STRING, INIFileName);
-	GetPrivateProfileString("Settings", "LeaveSound", szDefaultLeave, szLeaveSound, MAX_STRING, INIFileName);
-	GetPrivateProfileString("Settings", "RemindSound", szDefaultRemind, szRemindSound, MAX_STRING, INIFileName);
-	if (!_FileExists(szEnterSound))
-		WriteChatf("%s\atWARNING - GM 'enter' sound file not found: \am%s", PluginMsg.c_str(), szEnterSound);
-	if (!_FileExists(szLeaveSound))
-		WriteChatf("%s\atWARNING - GM 'leave' sound file not found: \am%s", PluginMsg.c_str(), szLeaveSound);
-	if (!_FileExists(szRemindSound))
-		WriteChatf("%s\atWARNING - GM 'remind' sound file not found: \am%s", PluginMsg.c_str(), szRemindSound);
+		GetPrivateProfileString("Settings", "EnterSound", szDefaultEnter, szEnterSound, MAX_STRING, INIFileName);
+		if (!_FileExists(szDefaultEnter))
+			sprintf_s(szDefaultEnter, "%s\\Sounds\\gmenter.wav", gPathResources);
 
+		if (!_FileExists(szDefaultEnter))
+			sprintf_s(szDefaultEnter, "%s\\Sounds\\gmenter.mp3", gPathResources);
+
+		if (!_FileExists(szEnterSound))
+			WriteChatf("%s\atWARNING - GM 'enter' sound file not found: \am%s", PluginMsg.c_str(), szEnterSound);
+	}
+
+	{//DefaultLeave
+		char szDefaultLeave[MAX_STRING] = { 0 };
+
+		sprintf_s(szDefaultLeave, "%s\\Sounds\\gmleave.mp3", gPathResources);
+		GetPrivateProfileString("Settings", "LeaveSound", szDefaultLeave, szLeaveSound, MAX_STRING, INIFileName);
+		if (!_FileExists(szDefaultLeave))
+			sprintf_s(szDefaultLeave, "%s\\Sounds\\gmleave.wav", gPathResources);
+		if (!_FileExists(szDefaultLeave))
+			sprintf_s(szDefaultLeave, "%s\\Sounds\\gmleave.mp3", gPathResources);
+
+		if (!_FileExists(szLeaveSound))
+			WriteChatf("%s\atWARNING - GM 'leave' sound file not found: \am%s", PluginMsg.c_str(), szLeaveSound);
+	}
+
+	{//DefaultRemind
+		char szDefaultRemind[MAX_STRING] = { 0 };
+		sprintf_s(szDefaultRemind, "%s\\Sounds\\gmremind.mp3", gPathResources);
+		GetPrivateProfileString("Settings", "RemindSound", szDefaultRemind, szRemindSound, MAX_STRING, INIFileName);
+		if (!_FileExists(szDefaultRemind))
+			sprintf_s(szDefaultRemind, "%s\\Sounds\\gmremind.wav", gPathResources);
+
+		if (!_FileExists(szDefaultRemind))
+			sprintf_s(szDefaultRemind, "%s\\Sounds\\gmremind.mp3", gPathResources);
+
+		if (!_FileExists(szRemindSound))
+			WriteChatf("%s\atWARNING - GM 'remind' sound file not found: \am%s", PluginMsg.c_str(), szRemindSound);
+	}
+
+	//Only read, never written?
 	GetPrivateProfileString("Settings", "GMEnterCmd", "", szGMEnterCmd, MAX_STRING, INIFileName);
 	GetPrivateProfileString("Settings", "GMEnterCmdIf", "", szGMEnterCmdIf, MAX_STRING, INIFileName);
 	GetPrivateProfileString("Settings", "GMLeaveCmd", "", szGMLeaveCmd, MAX_STRING, INIFileName);
@@ -367,15 +358,15 @@ void ReadSettings()
 
 void WriteSettings()
 {
-	char szTemp[MAX_STRING];
-	_itoa_s(int(Reminder_Interval / 1000), szTemp, 10);
-	WritePrivateProfileString("Settings", "RemInt", szTemp, INIFileName);
-	WritePrivateProfileString("Settings", "GMCheck", bGMCheck ? "on" : "off", INIFileName);
-	WritePrivateProfileString("Settings", "GMSound", bGMSound ? "on" : "off", INIFileName);
-	WritePrivateProfileString("Settings", "GMBeep", bGMBeep ? "on" : "off", INIFileName);
-	WritePrivateProfileString("Settings", "GMPopup", bGMPopup ? "on" : "off", INIFileName);
-	WritePrivateProfileString("Settings", "GMChat", bGMChatAlert ? "on" : "off", INIFileName);
-	WritePrivateProfileString("Settings", "GMCorpse", bGMCorpse ? "on" : "off", INIFileName);
+	WritePrivateProfileInt("Settings", "RemInt", Reminder_Interval / 1000, INIFileName);
+
+	WritePrivateProfileBool("Settings", "GMCheck", bGMCheck, INIFileName);
+	WritePrivateProfileBool("Settings", "GMSound", bGMSound, INIFileName);
+	WritePrivateProfileBool("Settings", "GMBeep", bGMBeep, INIFileName);
+	WritePrivateProfileBool("Settings", "GMPopup", bGMPopup, INIFileName);
+	WritePrivateProfileBool("Settings", "GMChat", bGMChatAlert, INIFileName);
+	WritePrivateProfileBool("Settings", "GMCorpse", bGMCorpse, INIFileName);
+
 	WritePrivateProfileString("Settings", "EnterSound", szEnterSound, INIFileName);
 	WritePrivateProfileString("Settings", "LeaveSound", szLeaveSound, INIFileName);
 	WritePrivateProfileString("Settings", "RemindSound", szRemindSound, INIFileName);
