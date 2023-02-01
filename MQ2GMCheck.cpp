@@ -451,69 +451,16 @@ void PlayGMSound(char* pFileName)
 	}
 }
 
-void GMCorpseToggle(char* szLine)
-{
-	char szArg[MAX_STRING];
+void ToggleBool(char* szLine, bool* theOption, char* msg) {
+	char szArg[MAX_STRING] = { 0 };
 	GetArg(szArg, szLine, 1);
 	if (!szArg[0])
-		bGMCorpse = !bGMCorpse;
+		*theOption = !*theOption;
 	else if (!_strnicmp(szArg, "on", 2))
-		bGMCorpse = true;
+		*theOption = true;
 	else if (!_strnicmp(szArg, "off", 3))
-		bGMCorpse = false;
-	WriteChatf("%s\amCorpse exclusion from GM alerts is now %s\am.", bGMCorpse ? "\agENABLED" : "\arDISABLED", PluginMsg.c_str());
-}
-
-void GMSoundToggle(char* szLine)
-{
-	char szArg[MAX_STRING];
-	GetArg(szArg, szLine, 1);
-	if (!szArg[0])
-		bGMSound = !bGMSound;
-	else if (!_strnicmp(szArg, "on", 2))
-		bGMSound = true;
-	else if (!_strnicmp(szArg, "off", 3))
-		bGMSound = false;
-	WriteChatf("%s\amSound playing on GM detection is now %s\am.", bGMSound ? "\agENABLED" : "\arDISABLED", PluginMsg.c_str());
-}
-
-void GMBeepToggle(char* szLine)
-{
-	char szArg[MAX_STRING];
-	GetArg(szArg, szLine, 1);
-	if (!szArg[0])
-		bGMBeep = !bGMBeep;
-	else if (!_strnicmp(szArg, "on", 2))
-		bGMBeep = true;
-	else if (!_strnicmp(szArg, "off", 3))
-		bGMBeep = false;
-	WriteChatf("%s\amBeeping on GM detection is now %s\am.", bGMBeep ? "\agENABLED" : "\arDISABLED", PluginMsg.c_str());
-}
-
-void GMPopupToggle(char* szLine)
-{
-	char szArg[MAX_STRING];
-	GetArg(szArg, szLine, 1);
-	if (!szArg[0])
-		bGMPopup = !bGMPopup;
-	else if (!_strnicmp(szArg, "on", 2))
-		bGMPopup = true;
-	else if (!_strnicmp(szArg, "off", 3))
-		bGMPopup = false;
-	WriteChatf("%s\amShowing popup message on GM detection is now %s\am.", PluginMsg.c_str(), bGMPopup ? "\agENABLED" : "\arDISABLED");
-}
-
-void GMChatToggle(char* szLine)
-{
-	char szArg[MAX_STRING];
-	GetArg(szArg, szLine, 1);
-	if (!szArg[0])
-		bGMChatAlert = !bGMChatAlert;
-	else if (!_strnicmp(szArg, "on", 2))
-		bGMChatAlert = true;
-	else if (!_strnicmp(szArg, "off", 3))
-		bGMChatAlert = false;
-	WriteChatf("%s%s \amdisplaying alerts in chat window.", bGMChatAlert ? "\agNow" : "\arNo longer", PluginMsg.c_str());
+		*theOption = false;
+	WriteChatf("%s\am%s is now %s", PluginMsg.c_str(), *theOption ? "\agEnabled" : "\arDISABLED");
 }
 
 char* DisplayTime()
@@ -821,27 +768,28 @@ void GMCheckCmd(PlayerClient* pChar, char* szLine)
 	else if (!_stricmp(szArg1, "sound"))
 	{
 		strcpy_s(szArg2, GetNextArg(szLine));
-		GMSoundToggle(szArg2);
+		ToggleBool(szArg2, &bGMSound, "Sound playing on GM detection");
 	}
 	else if (!_stricmp(szArg1, "beep"))
 	{
 		strcpy_s(szArg2, GetNextArg(szLine));
-		GMBeepToggle(szArg2);
+		ToggleBool(szArg2, &bGMBeep, "Beeping on GM detection");
 	}
 	else if (!_stricmp(szArg1, "corpse"))
 	{
 		strcpy_s(szArg2, GetNextArg(szLine));
-		GMCorpseToggle(szArg2);
+		ToggleBool(szArg2, &bGMCorpse, "Corpse exclusion from GM alerts");
+
 	}
 	else if (!_stricmp(szArg1, "popup"))
 	{
 		strcpy_s(szArg2, GetNextArg(szLine));
-		GMPopupToggle(szArg2);
+		ToggleBool(szArg2, &bGMPopup, "Showing popup message on GM detection");
 	}
 	else if (!_stricmp(szArg1, "chat"))
 	{
 		strcpy_s(szArg2, GetNextArg(szLine));
-		GMChatToggle(szArg2);
+		ToggleBool(szArg2, &bGMChatAlert, "displaying alerts in chat window");
 	}
 	else if (!_stricmp(szArg1, "test"))
 	{
