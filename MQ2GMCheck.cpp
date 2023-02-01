@@ -28,6 +28,7 @@ unsigned long Check_PulseCount = 0, Update_PulseCount = 0, Reminder_Interval = 0
 bool bGMAlert = false, bGMCheck = true, bGMQuiet = false, bGMSound = true, bGMBeep = false, bGMPopup = false, bGMCorpse = false,
 	bGMCmdActive = false, bVolSet = false, bGMChatAlert = true;
 std::vector<std::string> GMNames;
+	const std::string PluginMsg = "/ay[MQ2GMCheck] ";
 	const std::string PluginName = "MQ2GMCheck";
 
 bool GMCheck()
@@ -251,12 +252,25 @@ bool IsGMCorpse(BYTE bType)
 void GMCheckStatus(bool MentionHelp = false)
 {
 	WriteChatf("\at%s \agv%1.2f", PluginName.c_str(), MQ2Version);
+	char szTemp[MAX_STRING] = { 0 };
+
 	if (Reminder_Interval)
-		WriteChatf("  \ar- \atGM Check is: %s \at(Chat: %s \at- Sound: %s \at- Beep: %s \at- Popup: %s \at- Corpses: %s\at) - Reminder Interval: \ag%u \atsecs", bGMCheck ? "\agON" : "\arOFF", bGMChatAlert ? "\agON" : "\arOFF", bGMSound ? "\agON" : "\arOFF", bGMBeep ? "\agON" : "\arOFF", bGMPopup ? "\agON" : "\arOFF", bGMCorpse ? "\agIGNORED" : "\arINCLUDED", (int)(Reminder_Interval / 1000));
+		sprintf_s(szTemp, "\ag%u \atsecs", Reminder_Interval);
 	else
-		WriteChatf("  \ar- \atGM Check is: %s \at(Chat: %s \at- Sound: %s \at- Beep: %s \at- Popup: %s \at- Corpses: %s\at) - Reminder Interval: \arDISABLED\at", bGMCheck ? "\agON" : "\arOFF", bGMChatAlert ? "\agON" : "\arOFF", bGMSound ? "\agON" : "\arOFF", bGMBeep ? "\agON" : "\arOFF", bGMPopup ? "\agON" : "\arOFF", bGMCorpse ? "\agIGNORED" : "\arINCLUDED");
+		strcpy_s(szTemp, "\arDisabled");
+
+	WriteChatf("%s\ar- \atGM Check is: %s \at(Chat: %s \at- Sound: %s \at- Beep: %s \at- Popup: %s \at- Corpses: %s\at) - Reminder Interval: %s",
+		PluginMsg.c_str(),
+		bGMCheck ? "\agON" : "\arOFF",
+		bGMChatAlert ? "\agON" : "\arOFF",
+		bGMSound ? "\agON" : "\arOFF",
+		bGMBeep ? "\agON" : "\arOFF",
+		bGMPopup ? "\agON" : "\arOFF",
+		bGMCorpse ? "\agIGNORED" : "\arINCLUDED",
+		szTemp);
+
 	if (MentionHelp)
-		WriteChatf("\ayUse '/gmcheck help' for command help");
+		WriteChatf("%s\ayUse '/gmcheck help' for command help", PluginMsg.c_str());
 }
 
 void ReadSettings()
@@ -325,11 +339,11 @@ void ReadSettings()
 	GetPrivateProfileString("Settings", "LeaveSound", szDefaultLeave, szLeaveSound, MAX_STRING, INIFileName);
 	GetPrivateProfileString("Settings", "RemindSound", szDefaultRemind, szRemindSound, MAX_STRING, INIFileName);
 	if (!_FileExists(szEnterSound))
-		WriteChatf("\ayMQ2GMCheck: \atWARNING - GM 'enter' sound file not found: \am%s", szEnterSound);
+		WriteChatf("%s\atWARNING - GM 'enter' sound file not found: \am%s", PluginMsg.c_str(), szEnterSound);
 	if (!_FileExists(szLeaveSound))
-		WriteChatf("\ayMQ2GMCheck: \atWARNING - GM 'leave' sound file not found: \am%s", szLeaveSound);
+		WriteChatf("%s\atWARNING - GM 'leave' sound file not found: \am%s", PluginMsg.c_str(), szLeaveSound);
 	if (!_FileExists(szRemindSound))
-		WriteChatf("\ayMQ2GMCheck: \atWARNING - GM 'remind' sound file not found: \am%s", szRemindSound);
+		WriteChatf("%s\atWARNING - GM 'remind' sound file not found: \am%s", PluginMsg.c_str(), szRemindSound);
 
 	GetPrivateProfileString("Settings", "GMEnterCmd", "", szGMEnterCmd, MAX_STRING, INIFileName);
 	GetPrivateProfileString("Settings", "GMEnterCmdIf", "", szGMEnterCmdIf, MAX_STRING, INIFileName);
@@ -357,14 +371,14 @@ void SaveSettings()
 {
 	WriteSettings();
 	GMCheckStatus();
-	WriteChatf("\ayMQ2GMCheck: \amSettings saved.");
+	WriteChatf("%s\amSettings saved.", PluginMsg.c_str());
 }
 
 void LoadSettings()
 {
 	ReadSettings();
 	GMCheckStatus();
-	WriteChatf("\ayMQ2GMCheck: \amSettings loaded.");
+	WriteChatf("%s\amSettings loaded.", PluginMsg.c_str());
 }
 
 void StopGMSound()
@@ -447,7 +461,7 @@ void GMCorpseToggle(char* szLine)
 		bGMCorpse = true;
 	else if (!_strnicmp(szArg, "off", 3))
 		bGMCorpse = false;
-	WriteChatf("\ayMQ2GMCheck: \amCorpse exclusion from GM alerts is now %s\am.", bGMCorpse ? "\agENABLED" : "\arDISABLED");
+	WriteChatf("%s\amCorpse exclusion from GM alerts is now %s\am.", bGMCorpse ? "\agENABLED" : "\arDISABLED", PluginMsg.c_str());
 }
 
 void GMSoundToggle(char* szLine)
@@ -460,7 +474,7 @@ void GMSoundToggle(char* szLine)
 		bGMSound = true;
 	else if (!_strnicmp(szArg, "off", 3))
 		bGMSound = false;
-	WriteChatf("\ayMQ2GMCheck: \amSound playing on GM detection is now %s\am.", bGMSound ? "\agENABLED" : "\arDISABLED");
+	WriteChatf("%s\amSound playing on GM detection is now %s\am.", bGMSound ? "\agENABLED" : "\arDISABLED", PluginMsg.c_str());
 }
 
 void GMBeepToggle(char* szLine)
@@ -473,7 +487,7 @@ void GMBeepToggle(char* szLine)
 		bGMBeep = true;
 	else if (!_strnicmp(szArg, "off", 3))
 		bGMBeep = false;
-	WriteChatf("\ayMQ2GMCheck: \amBeeping on GM detection is now %s\am.", bGMBeep ? "\agENABLED" : "\arDISABLED");
+	WriteChatf("%s\amBeeping on GM detection is now %s\am.", bGMBeep ? "\agENABLED" : "\arDISABLED", PluginMsg.c_str());
 }
 
 void GMPopupToggle(char* szLine)
@@ -486,7 +500,7 @@ void GMPopupToggle(char* szLine)
 		bGMPopup = true;
 	else if (!_strnicmp(szArg, "off", 3))
 		bGMPopup = false;
-	WriteChatf("\ayMQ2GMCheck: \amShowing popup message on GM detection is now %s\am.", bGMPopup ? "\agENABLED" : "\arDISABLED");
+	WriteChatf("%s\amShowing popup message on GM detection is now %s\am.", PluginMsg.c_str(), bGMPopup ? "\agENABLED" : "\arDISABLED");
 }
 
 void GMChatToggle(char* szLine)
@@ -499,7 +513,7 @@ void GMChatToggle(char* szLine)
 		bGMChatAlert = true;
 	else if (!_strnicmp(szArg, "off", 3))
 		bGMChatAlert = false;
-	WriteChatf("\ayMQ2GMCheck: %s \amdisplaying alerts in chat window.", bGMChatAlert ? "\agNow" : "\arNo longer");
+	WriteChatf("%s%s \amdisplaying alerts in chat window.", bGMChatAlert ? "\agNow" : "\arNo longer", PluginMsg.c_str());
 }
 
 char* DisplayTime()
@@ -541,7 +555,7 @@ void GMReminder(char* szLine)
 
 	if (Interval[0] == 0)
 	{
-		WriteChatf("\ay/MQ2GMCheck\aw: Usage is /gmcheck rem VALUE    (where value is num of seconds to set reminder to, min 10 secs - or 0 to disable)");
+		WriteChatf("%s\aw: Usage is /gmcheck rem VALUE    (where value is num of seconds to set reminder to, min 10 secs - or 0 to disable)", PluginMsg.c_str());
 		return;
 	}
 
@@ -549,31 +563,28 @@ void GMReminder(char* szLine)
 	if (Reminder_Interval < 10000 && Reminder_Interval)
 		Reminder_Interval = 10000;
 	if (Reminder_Interval)
-		WriteChatf("\ay/MQ2GMCheck\aw: Reminder interval set to \ar%u \awseconds.  Remember to use \ay/gmsave \awif you want this to be a permanent change.", Reminder_Interval / 1000);
+		WriteChatf("%s\aw: Reminder interval set to \ar%u \awseconds.  Remember to use \ay/gmsave \awif you want this to be a permanent change.", Reminder_Interval / 1000, PluginMsg.c_str());
 	else
-		WriteChatf("\ay/MQ2GMCheck\aw: Reminder interval set to \ar%u \awseconds (\arDISABLED\aw).  Remember to use \ay/gmsave \awif you want this to be a permanent change.", Reminder_Interval / 1000);
+		WriteChatf("%s\aw: Reminder interval set to \ar%u \awseconds (\arDISABLED\aw).  Remember to use \ay/gmsave \awif you want this to be a permanent change.", PluginMsg.c_str(), Reminder_Interval / 1000);
 }
 
 void GMHelp()
 {
-	WriteChatf("");
-	WriteChatf("\ayMQ2GMCheck Commands:");
-	WriteChatf("");
-	WriteChatf("\ay/gmcheck [status] \ax: \agShow current settings/status.");
-	WriteChatf("\ay/gmcheck quiet [off|on]\ax: \agToggle all GM alert & reminder sounds, or force on/off.");
-	WriteChatf("\ay/gmcheck [off|on]\ax: \agTurn GM alerting on or off.");
-	WriteChatf("\ay/gmcheck sound [off|on]\ax: \agToggle playing sounds for GM alerts, or force on/off.");
-	WriteChatf("\ay/gmcheck beep [off|on]\ax: \agToggle playing beeps for GM alerts, or force on/off.");
-	WriteChatf("\ay/gmcheck popup [off|on]\ax: \agToggle showing popup messages for GM alerts, or force on/off.");
-	WriteChatf("\ay/gmcheck chat [off|on]\ax: \agToggle GM alert being output to the MQ2 chat window, or force on/off.");
-	WriteChatf("\ay/gmcheck corpse [off|on]\ax: \agToggle GM alert being ignored if the spawn is a corpse, or force on/off.");
-	WriteChatf("\ay/gmcheck rem \ax: \agChange alert reminder interval, in seconds.  e.g.: /gmcheck rem 15 (0 to disable)");
-	WriteChatf("\ay/gmcheck save \ax: \agSave current settings.");
-	WriteChatf("\ay/gmcheck load \ax: \agLoad settings from INI file.");
-	WriteChatf("\ay/gmcheck test {enter|leave|remind} \ax: Test alerts & sounds for the indicated type.  e.g.: /gmcheck test leave");
-	WriteChatf("\ay/gmcheck ss {enter|leave|remind} SoundFileName \ax: Set the filename (wav/mp3) to play for indicated alert. Full path if sound file is not in your MQ2 dir.");
-	WriteChatf("\ay/gmcheck help \ax: \agThis help.");
-	WriteChatf("");
+	WriteChatf("\n%s\ayMQ2GMCheck Commands:\n", PluginMsg.c_str());
+	WriteChatf("%s\ay/gmcheck [status] \ax: \agShow current settings/status.", PluginMsg.c_str());
+	WriteChatf("%s\ay/gmcheck quiet [off|on]\ax: \agToggle all GM alert & reminder sounds, or force on/off.", PluginMsg.c_str());
+	WriteChatf("%s\ay/gmcheck [off|on]\ax: \agTurn GM alerting on or off.", PluginMsg.c_str());
+	WriteChatf("%s\ay/gmcheck sound [off|on]\ax: \agToggle playing sounds for GM alerts, or force on/off.", PluginMsg.c_str());
+	WriteChatf("%s\ay/gmcheck beep [off|on]\ax: \agToggle playing beeps for GM alerts, or force on/off.", PluginMsg.c_str());
+	WriteChatf("%s\ay/gmcheck popup [off|on]\ax: \agToggle showing popup messages for GM alerts, or force on/off.", PluginMsg.c_str());
+	WriteChatf("%s\ay/gmcheck chat [off|on]\ax: \agToggle GM alert being output to the MQ2 chat window, or force on/off.", PluginMsg.c_str());
+	WriteChatf("%s\ay/gmcheck corpse [off|on]\ax: \agToggle GM alert being ignored if the spawn is a corpse, or force on/off.", PluginMsg.c_str());
+	WriteChatf("%s\ay/gmcheck rem \ax: \agChange alert reminder interval, in seconds.  e.g.: /gmcheck rem 15 (0 to disable)", PluginMsg.c_str());
+	WriteChatf("%s\ay/gmcheck save \ax: \agSave current settings.", PluginMsg.c_str());
+	WriteChatf("%s\ay/gmcheck load \ax: \agLoad settings from INI file.", PluginMsg.c_str());
+	WriteChatf("%s\ay/gmcheck test {enter|leave|remind} \ax: Test alerts & sounds for the indicated type.  e.g.: /gmcheck test leave", PluginMsg.c_str());
+	WriteChatf("%s\ay/gmcheck ss {enter|leave|remind} SoundFileName \ax: Set the filename (wav/mp3) to play for indicated alert. Full path if sound file is not in your MQ2 dir.", PluginMsg.c_str());
+	WriteChatf("%s\ay/gmcheck help \ax: \agThis help.\n", PluginMsg.c_str());
 }
 
 void GMQuiet(char* szLine)
@@ -586,7 +597,7 @@ void GMQuiet(char* szLine)
 		bGMQuiet = true;
 	else if (!_strnicmp(szArg, "off", 3))
 		bGMQuiet = false;
-	WriteChatf("\ayMQ2GMCheck: \amGM alert and reminder sounds %s%s\am.", bGMQuiet ? "temporarily " : "", bGMQuiet ? "\arDISABLED" : "\agENABLED");
+	WriteChatf("%s\amGM alert and reminder sounds %s%s\am.", PluginMsg.c_str(), bGMQuiet ? "temporarily " : "", bGMQuiet ? "\arDISABLED" : "\agENABLED");
 }
 
 void GMTest(char* szLine)
@@ -595,7 +606,7 @@ void GMTest(char* szLine)
 	char szMsg[MAX_STRING], szPopup[MAX_STRING];
 	if (gGameState != GAMESTATE_INGAME)
 	{
-		WriteChatf("\ayMQ2GMCheck: \arMust be in game to use /gmcheck test");
+		WriteChatf("%s\arMust be in game to use /gmcheck test", PluginMsg.c_str());
 		return;
 	}
 	GetArg(szArg, szLine, 1);
@@ -603,10 +614,11 @@ void GMTest(char* szLine)
 	{
 		sprintf_s(szMsg, "(TEST) \arGM %s \ayhas entered the zone at \ar%s", GetCharInfo()->Name, DisplayTime());
 		sprintf_s(szPopup, "(TEST) GM %s has entered the zone at %s", GetCharInfo()->Name, DisplayTime());
-		WriteChatf(szMsg);
+		WriteChatf("%s%s", PluginMsg.c_str(), szMsg);
 		strcpy_s(szTmp, szGMEnterCmdIf);
 		long lResult = MCEval(szTmp);
-		WriteChatf("\ayMQ2GMCheck: \at(If first GM entered zone): GMEnterCmdIf evaluates to %s\at.  Plugin would %s \atGMEnterCmd: \am%s",
+		WriteChatf("%s\at(If first GM entered zone): GMEnterCmdIf evaluates to %s\at.  Plugin would %s \atGMEnterCmd: \am%s",
+			PluginMsg.c_str(),
 			lResult ? "\agTRUE" : "\arFALSE", lResult ? (szGMEnterCmd[0] ? (szGMEnterCmd[0] == '/' ? "\agEXECUTE" : "\arNOT EXECUTE") : "\arNOT EXECUTE") : "\arNOT EXECUTE",
 			szGMEnterCmd[0] ? (szGMEnterCmd[0] == '/' ? szGMEnterCmd : "<IGNORED>") : "<NONE>");
 		if (bGMPopup)
@@ -634,11 +646,13 @@ void GMTest(char* szLine)
 	{
 		sprintf_s(szMsg, "(TEST) \agGM %s \ayhas left the zone at \ag%s", GetCharInfo()->Name, DisplayTime());
 		sprintf_s(szPopup, "(TEST) GM %s has left the zone at %s", GetCharInfo()->Name, DisplayTime());
-		WriteChatf(szMsg);
+		WriteChatf("%s%s", PluginMsg.c_str(), szMsg);
 		strcpy_s(szTmp, szGMLeaveCmdIf);
 		long lResult = MCEval(szTmp);
-		WriteChatf("\ayMQ2GMCheck: \at(If last GM left zone): GMLeaveCmdIf evaluates to %s\at.  Plugin would %s \atGMLeaveCmd: \am%s",
-			lResult ? "\agTRUE" : "\arFALSE", lResult ? (szGMLeaveCmd[0] ? (szGMLeaveCmd[0] == '/' ? "\agEXECUTE" : "\arNOT EXECUTE") : "\arNOT EXECUTE") : "\arNOT EXECUTE",
+		WriteChatf("%s\at(If last GM left zone): GMLeaveCmdIf evaluates to %s\at.  Plugin would %s \atGMLeaveCmd: \am%s",
+			PluginMsg.c_str(),
+			lResult ? "\agTRUE" : "\arFALSE",
+			lResult ? (szGMLeaveCmd[0] ? (szGMLeaveCmd[0] == '/' ? "\agEXECUTE" : "\arNOT EXECUTE") : "\arNOT EXECUTE") : "\arNOT EXECUTE",
 			szGMLeaveCmd[0] ? (szGMLeaveCmd[0] == '/' ? szGMLeaveCmd : "<IGNORED>") : "<NONE>");
 		if (!bGMQuiet)
 		{
@@ -664,7 +678,7 @@ void GMTest(char* szLine)
 	else if (!strncmp(szArg, "remind", 6))
 	{
 		sprintf_s(szMsg, "(TEST) \arGM ALERT!!  \ayGM in zone.  \at(\ag%s\at)", GetCharInfo()->Name);
-		WriteChatf(szMsg);
+		WriteChatf("%s%s", PluginMsg.c_str(), szMsg);
 		if (bGMSound)
 		{
 			PlayGMSound(szRemindSound);
@@ -672,7 +686,7 @@ void GMTest(char* szLine)
 	}
 	else
 	{
-		WriteChatf("\ayMQ2GMCheck:  \atUsage: \am/gmcheck test {enter|leave|remind}");
+		WriteChatf("%s\atUsage: \am/gmcheck test {enter|leave|remind}", PluginMsg.c_str());
 	}
 }
 
@@ -688,8 +702,8 @@ void GMSS(char* szLine)
 		{
 			bOK = true;
 			strcpy_s(szEnterSound, szFile);
-			WriteChatf("\ayMQ2GMCheck: \at'enter' sound set to: \am%s", szEnterSound);
-			WriteChatf("\ayMQ2GMCheck: \agDon't forget to use '/gmcheck save' if you want this to be persistant!");
+			WriteChatf("%s\at'enter' sound set to: \am%s", PluginMsg.c_str(), szEnterSound);
+			WriteChatf("%s\agDon't forget to use '/gmcheck save' if you want this to be persistant!", PluginMsg.c_str());
 		}
 	}
 	else if (!strncmp(szArg, "leave", 5))
@@ -698,8 +712,8 @@ void GMSS(char* szLine)
 		{
 			bOK = true;
 			strcpy_s(szLeaveSound, szFile);
-			WriteChatf("\ayMQ2GMCheck: \at'leave' sound set to: \am%s", szLeaveSound);
-			WriteChatf("\ayMQ2GMCheck: \agDon't forget to use '/gmcheck save' if you want this to be persistant!");
+			WriteChatf("%s\at'leave' sound set to: \am%s", PluginMsg.c_str(), szLeaveSound);
+			WriteChatf("%s\agDon't forget to use '/gmcheck save' if you want this to be persistant!", PluginMsg.c_str());
 		}
 	}
 	else if (!strncmp(szArg, "remind", 5))
@@ -708,24 +722,24 @@ void GMSS(char* szLine)
 		{
 			bOK = true;
 			strcpy_s(szRemindSound, szFile);
-			WriteChatf("\ayMQ2GMCheck: \at'remind' sound set to: \am%s", szRemindSound);
-			WriteChatf("\ayMQ2GMCheck: \agDon't forget to use '/gmcheck save' if you want this to be persistant!");
+			WriteChatf("%s\at'remind' sound set to: \am%s", PluginMsg.c_str(), szRemindSound);
+			WriteChatf("%s\agDon't forget to use '/gmcheck save' if you want this to be persistant!", PluginMsg.c_str());
 		}
 	}
 	else
 	{
 		bOK = true;
-		WriteChatf("\ayMQ2GMCheck: \arBad option, usage: \at/gmcheck ss {enter|leave|remind} SoundFileName");
+		WriteChatf("%s\arBad option, usage: \at/gmcheck ss {enter|leave|remind} SoundFileName", PluginMsg.c_str());
 	}
 	if (!bOK)
-		WriteChatf("\ayMQ2GMCheck: \arSound file not found, setting not changed, tried: \am%s", szFile[0] ? szFile : "(No filename supplied)");
+		WriteChatf("%s\arSound file not found, setting not changed, tried: \am%s", PluginMsg.c_str(), szFile[0] ? szFile : "(No filename supplied)");
 }
 
 void UpdateAlerts()
 {
 	PlayerClient* pSpawn;
-	unsigned long Tmp;
-	unsigned int index;
+	uint32_t Tmp;
+	uint32_t index;
 	char szTmp[MAX_STRING], szMsg[MAX_STRING], szPopup[MAX_STRING];
 	if (GMNames.empty())
 		return;
@@ -747,7 +761,7 @@ void UpdateAlerts()
 			sprintf_s(szMsg, "\agGM %s \ayhas left the zone at \ag%s", VectorRef.c_str(), DisplayTime());
 			sprintf_s(szPopup, "GM %s has left the zone at %s", VectorRef.c_str(), DisplayTime());
 			if (bGMChatAlert)
-				WriteChatf(szMsg);
+				WriteChatf("%s%s", PluginMsg.c_str(), szMsg);
 			if (GMNames.empty())
 			{
 				if (bGMCmdActive)
@@ -796,12 +810,12 @@ void GMCheckCmd(PlayerClient* pChar, char* szLine)
 	if (!_stricmp(szArg1, "on"))
 	{
 		bGMCheck = true;
-		WriteChatf("\ayMQ2GMCheck: \amGM checking is now %s\am.", bGMCheck ? "\agENABLED" : "\arDISABLED");
+		WriteChatf("%s\amGM checking is now %s\am.", bGMCheck ? "\agENABLED" : "\arDISABLED", PluginMsg.c_str());
 	}
 	else if (!_stricmp(szArg1, "off"))
 	{
 		bGMCheck = false;
-		WriteChatf("\ayMQ2GMCheck: \amGM checking is now %s\am.", bGMCheck ? "\agENABLED" : "\arDISABLED");
+		WriteChatf("%s\amGM checking is now %s\am.", bGMCheck ? "\agENABLED" : "\arDISABLED", PluginMsg.c_str());
 	}
 	else if (!_stricmp(szArg1, "quiet"))
 	{
@@ -915,7 +929,7 @@ PLUGIN_API VOID InitializePlugin()
 
 PLUGIN_API VOID ShutdownPlugin()
 {
-	WriteChatf("\ayMQ2GMCheck: \amUnloading plugin.");
+	WriteChatf("%s \amUnloading plugin.", PluginMsg.c_str());
 	DebugSpewAlways("Shutting down MQ2GMCheck");
 	RemoveCommand("/gmcheck");
 	GMNames.clear();
@@ -968,7 +982,7 @@ PLUGIN_API VOID OnPulse()
 					}
 					sprintf_s(szTmp, "\arGM ALERT!!  \ayGM in zone.  \at(%s\at)", szNames);
 					if (bGMChatAlert)
-						WriteChatf(szTmp);
+						WriteChatf("%s%s", PluginMsg.c_str(), szTmp);
 					if (bGMSound)
 					{
 						PlayGMSound(szRemindSound);
@@ -1007,7 +1021,7 @@ PLUGIN_API VOID OnAddSpawn(PlayerClient* pSpawn)
 				sprintf_s(szMsg, "\arGM %s \ayhas entered the zone at \ar%s", pSpawn->DisplayedName, DisplayTime());
 				sprintf_s(szPopup, "GM %s has entered the zone at %s", pSpawn->DisplayedName, DisplayTime());
 				if (bGMChatAlert)
-					WriteChatf(szMsg);
+					WriteChatf("%s%s", PluginMsg.c_str(), szMsg);
 				if (!bGMCmdActive)
 				{
 					strcpy_s(szTmp, szGMEnterCmdIf);
@@ -1071,7 +1085,7 @@ PLUGIN_API VOID OnRemoveSpawn(PlayerClient* pSpawn)
 				sprintf_s(szMsg, "\agGM %s \ayhas left the zone at \ag%s", pSpawn->DisplayedName, DisplayTime());
 				sprintf_s(szPopup, "GM %s has left the zone at %s", pSpawn->DisplayedName, DisplayTime());
 				if (bGMChatAlert)
-					WriteChatf(szMsg);
+					WriteChatf("%s%s",PluginMsg.c_str() ,szMsg);
 				if (GMNames.empty())
 				{
 					if (bGMCmdActive)
