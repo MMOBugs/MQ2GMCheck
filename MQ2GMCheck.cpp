@@ -896,7 +896,7 @@ void GMCheckCmd(PlayerClient* pChar, char* szLine)
 		GMCheckStatus(true);
 }
 
-void GetValuesFromINI()
+void SetupVolumesFromINI()
 {
 	char szTemp[MAX_STRING] = { 0 };
 	DWORD i = -1;
@@ -924,7 +924,7 @@ void GetValuesFromINI()
 PLUGIN_API VOID InitializePlugin()
 {
 	DebugSpewAlways("Initializing MQ2GMCheck");
-	GetValuesFromINI();
+	SetupVolumesFromINI();
 
 	strcpy_s(szLastGMName, "NONE");
 	strcpy_s(szLastGMTime, "NEVER");
