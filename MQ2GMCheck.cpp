@@ -31,7 +31,7 @@ std::vector<std::string> GMNames;
 
 bool GMCheck()
 {
-	return GMNames.size() ? true : false;
+	return !GMNames.empty() ? true : false;
 }
 
 long MCEval(const char* zBuffer)
@@ -726,7 +726,7 @@ void UpdateAlerts()
 	unsigned long Tmp;
 	unsigned int index;
 	char szTmp[MAX_STRING], szMsg[MAX_STRING], szPopup[MAX_STRING];
-	if (!GMNames.size())
+	if (GMNames.empty())
 		return;
 	if (gGameState != GAMESTATE_INGAME)
 		return;
@@ -747,7 +747,7 @@ void UpdateAlerts()
 			sprintf_s(szPopup, "GM %s has left the zone at %s", VectorRef.c_str(), DisplayTime());
 			if (bGMChatAlert)
 				WriteChatf(szMsg);
-			if (!(GMNames.size()))
+			if (GMNames.empty())
 			{
 				if (bGMCmdActive)
 				{
@@ -939,7 +939,7 @@ PLUGIN_API VOID OnPulse(VOID)
 			{
 				if (!bGMQuiet)
 				{
-					if (!GMNames.size())
+					if (GMNames.empty())
 						return;
 					if (!bGMCheck)
 						return;
@@ -1064,7 +1064,7 @@ PLUGIN_API VOID OnRemoveSpawn(PSPAWNINFO pSpawn)
 				sprintf_s(szPopup, "GM %s has left the zone at %s", pSpawn->DisplayedName, DisplayTime());
 				if (bGMChatAlert)
 					WriteChatf(szMsg);
-				if (!(GMNames.size()))
+				if (GMNames.empty())
 				{
 					if (bGMCmdActive)
 					{
