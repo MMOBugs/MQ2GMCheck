@@ -14,12 +14,12 @@
 
 #include <mq/Plugin.h>
 #include <vector>
-#include <mmsystem.h> 
+#include <mmsystem.h>
 
 PreSetup("MQ2GMCheck");
 PLUGIN_VERSION(4.00);
 
-#pragma comment(lib,"winmm.lib") 
+#pragma comment(lib,"winmm.lib")
 
 char szEnterSound[MAX_STRING] = { 0 }, szLeaveSound[MAX_STRING] = { 0 }, szRemindSound[MAX_STRING] = { 0 }, szLastGMName[MAX_STRING] = { 0 },
 	szLastGMTime[MAX_STRING] = { 0 }, szLastGMDate[MAX_STRING] = { 0 }, szLastGMZone[MAX_STRING] = { 0 }, szGM[50] = { 0 },
