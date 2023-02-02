@@ -941,26 +941,26 @@ void HistoryGMs(HistoryType histValue) {
 			Firhumrng = 1, Wed Dec 16 12:57 : 27 2020
 	*/
 
-	char szKeys[MAX_STRING * 25] = { 0 };
+	char szKeys[MAX_STRING] = { 0 };
 
 	switch (histValue) {
 	case eHistory_All:
 	{
-		char szKeys[MAX_STRING * 25] = { 0 };
+		char szKeys[MAX_STRING] = { 0 };
 		//Get list of entries under "GM" section
-		GetPrivateProfileString("GM", NULL, "", szKeys, MAX_STRING * 25, INIFileName);
+		GetPrivateProfileString("GM", NULL, "", szKeys, MAX_STRING, INIFileName);
 		break;
 	}
 	case eHistory_Server:
 	{
-		char szKeys[MAX_STRING * 25] = { 0 };
-		GetPrivateProfileString(GetServerShortName(), NULL, "", szKeys, MAX_STRING * 25, INIFileName);
+		char szKeys[MAX_STRING] = { 0 };
+		GetPrivateProfileString(GetServerShortName(), NULL, "", szKeys, MAX_STRING, INIFileName);
 	}
 	case eHistory_Zone:
 	{
 		char szSection[MAX_STRING] = { 0 };
 		sprintf_s(szSection, "%s-%s", GetServerShortName(), pZoneInfo->LongName);
-		GetPrivateProfileString(szSection, NULL, "", szKeys, MAX_STRING * 25, INIFileName);
+		GetPrivateProfileString(szSection, NULL, "", szKeys, MAX_STRING, INIFileName);
 	}
 	default:
 		WriteChatf("%s\ar Sorry we have encountered an error. Please submit an issue to git [Line: %d] %s", PluginMsg, __LINE__, __FUNCTION__);
