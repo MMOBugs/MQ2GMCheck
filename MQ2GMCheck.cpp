@@ -41,107 +41,135 @@ namespace GMCheckSpace {
 		bGMChatAlert = true;
 
 	std::vector<std::string> GMNames;
+
+	enum HistoryType {
+		eHistory_Zone,
+		eHistory_Server,
+		eHistory_All
+	};
 }
 
 using namespace GMCheckSpace;
 
-void HistoryGMAllServers() {
-	char szSection[MAX_STRING] = { 0 };
-	char szTemp[MAX_STRING] = { 0 };
-	char szServer[MAX_STRING] = { 0 };
-	char szTime[MAX_STRING] = { 0 };
-	char szCount[MAX_STRING] = { 0 };
+int countchars(char* inputString, char* searchchar) {
+	if (searchchar[0]) {
+		int count = 0;
+		const char* pLast = inputString - 1;
+
+		while (pLast = strchr(&pLast[1], searchchar[0]))
+			count++;
+
+		return count;
+	}
+	return 0;
+}
+
+void HistoryGMs(HistoryType histValue) {
+	/*
+		List of GMs.
+			[GM]
+			Firhumrng=20,firiona,Mon Aug 30 11:10:44 2021
+			Firhumnec=20,firiona,Wed Jan 27 15:00:07 2021
+			Morrganne=4,firiona,Wed Jan 27 18:20:21 2021
+
+		List of GMs for this server.
+			[firiona]
+			Firhumrng=20,Mon Aug 30 11:10:44 2021
+			Treantz=1,Thu Dec 17 18:10:29 2020
+			Niente=29,Fri Dec  9 17:34:42 2022
+
+		Zone specific example :
+			[firiona-Cobalt Scar]
+			Firhumrng = 1, Wed Dec 16 12:57 : 27 2020
+	*/
+
 	char szKeys[MAX_STRING * 25] = { 0 };
-	char* pch, * next_pch;
-	int count = 0;
+
+	switch (histValue) {
+		case eHistory_All:
+		{
+			char szKeys[MAX_STRING * 25] = { 0 };
+			//Get list of entries under "GM" section
+			GetPrivateProfileString("GM", NULL, "", szKeys, MAX_STRING * 25, INIFileName);
+			break;
+		}
+		case eHistory_Server:
+		{
+			char szKeys[MAX_STRING * 25] = { 0 };
+			GetPrivateProfileString(GetServerShortName(), NULL, "", szKeys, MAX_STRING * 25, INIFileName);
+		}
+		case eHistory_Zone:
+		{
+			char szSection[MAX_STRING] = { 0 };
+			sprintf_s(szSection, "%s-%s", GetServerShortName(), pZoneInfo->LongName);
+			GetPrivateProfileString(szSection, NULL, "", szKeys, MAX_STRING * 25, INIFileName);
+		}
+		default:
+			WriteChatf("%s\ar Sorry we have encountered an error. Please submit an issue to git [Line: %d] %s", PluginMsg, __LINE__, __FUNCTION__);
+			return;
+	}
+
+	std::vector<std::string> Outputs;
+	int NumEntries = countchars(szKeys, ",");//count how many entries their are.
+
+	for (int i = 0; i < NumEntries; i++) {//cycle through all the entries
+		char GMName[MAX_STRING] = "";
+		GetArg(GMName, szKeys, i, 0, 0, 0, ',', 0);
+		if (!strlen(GMName))
+			break;
+
+		//Collect Information for the currently listed GM.
+		char szTemp[MAX_STRING] = { 0 };
+		GetPrivateProfileString("GM", GMName, "", szTemp, MAX_STRING, INIFileName);
+
+		//1: Count
+		char SeenCount[MAX_STRING] = { 0 };
+		GetArg(szTemp, SeenCount, 1, 0, 0, 0, ',', 0);
+
+		char LastSeenDate[MAX_STRING] = { 0 };
+		char ServerName[MAX_STRING] = { 0 };
+		//All History also has the server.
+		if (histValue > eHistory_All) {
+			//2: ServerName
+			GetArg(szTemp, ServerName, 2, 0, 0, 0, ',', 0);
+
+			//3: Date
+			GetArg(szTemp, LastSeenDate, 3, 0, 0, 0, ',', 0);
+		}
+		else {
+			//2: Date
+			GetArg(szTemp, LastSeenDate, 2, 0, 0, 0, ',', 0);
+		}
+
+		switch (histValue) {
+			case eHistory_All:
+				sprintf_s(szTemp, "%sGM %s - seen %s times on server %s, last seen %s\ax", PluginMsg, GMName, SeenCount, ServerName, LastSeenDate);
+				break;
+			case eHistory_Server:
+				sprintf_s(szTemp, "%sGM %s - seen %s times on this server, last seen %s\ax", PluginMsg, GMName, SeenCount, LastSeenDate);
+				break;
+			case eHistory_Zone:
+				sprintf_s(szTemp, "%sGM %s - seen %s times in this zone, last seen %s\ax", PluginMsg, GMName, SeenCount, LastSeenDate);
+				break;
+			default:
+				WriteChatf("%s\ar Sorry we have encountered an error. Please submit an issue to git [Line: %d] %s", PluginMsg, __LINE__, __FUNCTION__);
+				return;
+		}
+
+		Outputs.push_back(szTemp);
+	}
 
 	// What GM's have been seen on all servers?
-	WriteChatf("\arGMCHECK: History of GM's on ALL servers\ax");
-	strcpy_s(szSection, "GM");
-	GetPrivateProfileString(szSection, NULL, "", szKeys, MAX_STRING * 25, INIFileName);
-	PCHAR pKeys = szKeys;
-	while (pKeys[0] != 0) {
-		GetPrivateProfileString(szSection, pKeys, "", szTemp, MAX_STRING, INIFileName);
-		if ((strstr(szTemp, ",") != NULL) && (szTemp[0] != 0)) {
-			count++;
-			pch = strtok_s(szTemp, ",", &next_pch);
-			strcpy_s(szCount, pch);
-			pch = strtok_s(NULL, ",", &next_pch);
-			strcpy_s(szServer, pch);
-			pch = strtok_s(NULL, ",", &next_pch);
-			strcpy_s(szTime, pch);
-			WriteChatf("\arGM %s - seen %s times on server %s, last seen %s\ax", pKeys, szCount, szServer, szTime);
+	if (!Outputs.empty()) {
+		WriteChatf("%sHistory of GM's on ALL servers\ax", PluginMsg);
+		for (std::string GMInfo : Outputs) {
+			WriteChatf("%s", GMInfo.c_str());//already has PluginMsg input when pushed into the vector.
 		}
-		pKeys += strlen(pKeys) + 1;
 	}
-	if (!count) WriteChatf("\arNo GM's seen yet!\ax");
-	return;
-}
-
-void HistoryGMThisServer() {
-	char szSection[MAX_STRING] = { 0 };
-	char szTemp[MAX_STRING] = { 0 };
-	char szTime[MAX_STRING] = { 0 };
-	char szCount[MAX_STRING] = { 0 };
-	char szKeys[MAX_STRING * 25] = { 0 };
-	char* pch, * next_pch;
-	int count = 0;
-
-	// What GM's have been seen on this server?
-	WriteChatf("\arGMCHECK: History of GM's on this server\ax");
-	sprintf_s(szSection, "%s", GetServerShortName());
-	GetPrivateProfileString(szSection, NULL, "", szKeys, MAX_STRING * 25, INIFileName);
-	PCHAR pKeys = szKeys;
-	while (pKeys[0] != 0) {
-		GetPrivateProfileString(szSection, pKeys, "", szTemp, MAX_STRING, INIFileName);
-		if ((strstr(szTemp, ",") != NULL) && (szTemp[0] != 0)) {
-			count++;
-			pch = strtok_s(szTemp, ",", &next_pch);
-			strcpy_s(szCount, pch);
-			pch = strtok_s(NULL, ",", &next_pch);
-			strcpy_s(szTime, pch);
-			WriteChatf("\arGM %s - seen %s times on this server, last seen %s\ax", pKeys, szCount, szTime);
-		}
-		pKeys += strlen(pKeys) + 1;
+	else {
+		WriteChatf("%s]ayWe were unable to find any history for \ag%s\ax section", PluginMsg, histValue == eHistory_All ? "All" : histValue == eHistory_Server ? "Server" : "Zone");
 	}
-	if (!count) WriteChatf("\arNo GM's seen on this server!\ax");
-	return;
-}
 
-void HistoryGMThisZone() {
-	char szSection[MAX_STRING] = { 0 };
-	char szTemp[MAX_STRING] = { 0 };
-	char szTime[MAX_STRING] = { 0 };
-	char szCount[MAX_STRING] = { 0 };
-	char szKeys[MAX_STRING * 25] = { 0 };
-	char* pch, * next_pch;
-	int count = 0;
-
-	// What GM's have been seen on this server in this zone?
-	WriteChatf("\arGMCHECK: History of GM's in this zone on this server\ax");
-	sprintf_s(szSection, "%s-%s", GetServerShortName(), pZoneInfo->LongName);
-	GetPrivateProfileString(szSection, NULL, "", szKeys, MAX_STRING * 25, INIFileName);
-	PCHAR pKeys = szKeys;
-	while (pKeys[0] != 0) {
-		GetPrivateProfileString(szSection, pKeys, "", szTemp, MAX_STRING, INIFileName);
-		if ((strstr(szTemp, ",") != NULL) && (szTemp[0] != 0)) {
-			count++;
-			pch = strtok_s(szTemp, ",", &next_pch);
-			strcpy_s(szCount, pch);
-			pch = strtok_s(NULL, ",", &next_pch);
-			strcpy_s(szTime, pch);
-			WriteChatf("\arGM %s - seen %s times in this zone, last seen %s\ax", pKeys, szCount, szTime);
-		}
-		pKeys += strlen(pKeys) + 1;
-	}
-	if (!count) WriteChatf("\arNo GM's seen in this zone!\ax");
-	return;
-}
-
-void HistoryGMs() {
-	HistoryGMAllServers();
-	HistoryGMThisServer();
-	HistoryGMThisZone();
 	return;
 }
 
