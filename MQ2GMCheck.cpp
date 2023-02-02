@@ -17,7 +17,7 @@
 #include <mmsystem.h>
 
 PreSetup("MQ2GMCheck");
-PLUGIN_VERSION(4.00);
+PLUGIN_VERSION(5.00);
 
 #pragma comment(lib,"winmm.lib")
 
