@@ -785,22 +785,33 @@ void UpdateAlerts()
 }
 
 void HistoryGMs(HistoryType histValue) {
-	/*
+	/* TODO: Clean up this format, left it for backwards compatibility
+		Format recommended by Knightly
+		[GM]
+		Firhumrng=something
+
+		[Firhumrng_firiona]
+		LastSeen=Somedate
+		LastZone=somezone
+		TotalTimes=50
+	*/
+
+	/* Current Format.
 		List of GMs.
 			[GM]
-			Firhumrng=20,firiona,Mon Aug 30 11:10:44 2021
-			Firhumnec=20,firiona,Wed Jan 27 15:00:07 2021
-			Morrganne=4,firiona,Wed Jan 27 18:20:21 2021
+			Firhumrng=20,firiona,Date: 02-02-23 Time: 03:24:05 PM
+			Firhumnec=20,firiona,Date: 02-02-23 Time: 03:24:05 PM
+			Morrganne=4,firiona,Date: 02-02-23 Time: 03:24:05 PM
 
 		List of GMs for this server.
 			[firiona]
-			Firhumrng=20,Mon Aug 30 11:10:44 2021
-			Treantz=1,Thu Dec 17 18:10:29 2020
-			Niente=29,Fri Dec  9 17:34:42 2022
+			Firhumrng=20,Date: 02-02-23 Time: 03:24:05 PM
+			Treantz=1,Date: 02-02-23 Time: 03:24:05 PM
+			Niente=29,Date: 02-02-23 Time: 03:24:05 PM
 
 		Zone specific example :
 			[firiona-Cobalt Scar]
-			Firhumrng = 1, Wed Dec 16 12:57 : 27 2020
+			Firhumrng=1,Date: 02-02-23 Time: 03:24:05 PM
 	*/
 	std::vector<std::string> vKeys;
 	char szSection[MAX_STRING] = { 0 };
