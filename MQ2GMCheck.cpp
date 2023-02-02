@@ -22,7 +22,7 @@ PLUGIN_VERSION(4.00);
 #pragma comment(lib,"winmm.lib")
 
 namespace GMCheckSpace {
-	const char PluginMsg[17] = "/ay[MQ2GMCheck] ";
+	const char PluginMsg[32] = "\ay[MQ2GMCheck] ";
 
 	char szEnterSound[MAX_STRING] = { 0 }, szLeaveSound[MAX_STRING] = { 0 }, szRemindSound[MAX_STRING] = { 0 },
 		szLastGMName[MAX_STRING] = { 0 }, szLastGMTime[MAX_STRING] = { 0 }, szLastGMDate[MAX_STRING] = { 0 },
