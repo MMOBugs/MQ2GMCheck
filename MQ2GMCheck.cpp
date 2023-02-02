@@ -51,167 +51,6 @@ namespace GMCheckSpace {
 
 using namespace GMCheckSpace;
 
-int countchars(char* inputString, char* searchchar) {
-	if (searchchar[0]) {
-		int count = 0;
-		const char* pLast = inputString - 1;
-
-		while (pLast = strchr(&pLast[1], searchchar[0]))
-			count++;
-
-		return count;
-	}
-	return 0;
-}
-
-void TrackGMs(char* GMName) {
-	char szSection[MAX_STRING] = { 0 };
-	char szTemp[MAX_STRING] = { 0 };
-	int iCount = 0;
-	char szLookup[MAX_STRING] = { 0 };
-	char szTime[MAX_STRING] = { 0 };
-	errno_t err;
-
-	time_t rawtime;
-	struct tm timeinfo = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-	time(&rawtime);
-	err = localtime_s(&timeinfo, &rawtime);
-	//strncpy(szTime,asctime(timeinfo),24);
-	err = asctime_s(szTime, MAX_STRING, &timeinfo);
-
-	// Store total GM count regardless of server
-	strcpy_s(szSection, "GM");
-	sprintf_s(szLookup, "%s", GMName);
-	iCount = GetPrivateProfileInt(szSection, szLookup, 0, INIFileName) + 1;
-	sprintf_s(szTemp, "%d,%s,%s", iCount, GetServerShortName(), szTime);
-	WritePrivateProfileString(szSection, szLookup, szTemp, INIFileName);
-
-	// Store GM count by Server
-	sprintf_s(szSection, "%s", GetServerShortName());
-	sprintf_s(szLookup, "%s", GMName);
-	iCount = GetPrivateProfileInt(szSection, szLookup, 0, INIFileName) + 1;
-	sprintf_s(szTemp, "%d,%s", iCount, szTime);
-	WritePrivateProfileString(szSection, szLookup, szTemp, INIFileName);
-
-	// Store GM count by Server-Zone
-	sprintf_s(szSection, "%s-%s", GetServerShortName(), pZoneInfo->LongName);
-	sprintf_s(szLookup, "%s", GMName);
-	iCount = GetPrivateProfileInt(szSection, szLookup, 0, INIFileName) + 1;
-	sprintf_s(szTemp, "%d,%s", iCount, szTime);
-	WritePrivateProfileString(szSection, szLookup, szTemp, INIFileName);
-
-	return;
-}
-
-void HistoryGMs(HistoryType histValue) {
-	/*
-		List of GMs.
-			[GM]
-			Firhumrng=20,firiona,Mon Aug 30 11:10:44 2021
-			Firhumnec=20,firiona,Wed Jan 27 15:00:07 2021
-			Morrganne=4,firiona,Wed Jan 27 18:20:21 2021
-
-		List of GMs for this server.
-			[firiona]
-			Firhumrng=20,Mon Aug 30 11:10:44 2021
-			Treantz=1,Thu Dec 17 18:10:29 2020
-			Niente=29,Fri Dec  9 17:34:42 2022
-
-		Zone specific example :
-			[firiona-Cobalt Scar]
-			Firhumrng = 1, Wed Dec 16 12:57 : 27 2020
-	*/
-
-	char szKeys[MAX_STRING * 25] = { 0 };
-
-	switch (histValue) {
-		case eHistory_All:
-		{
-			char szKeys[MAX_STRING * 25] = { 0 };
-			//Get list of entries under "GM" section
-			GetPrivateProfileString("GM", NULL, "", szKeys, MAX_STRING * 25, INIFileName);
-			break;
-		}
-		case eHistory_Server:
-		{
-			char szKeys[MAX_STRING * 25] = { 0 };
-			GetPrivateProfileString(GetServerShortName(), NULL, "", szKeys, MAX_STRING * 25, INIFileName);
-		}
-		case eHistory_Zone:
-		{
-			char szSection[MAX_STRING] = { 0 };
-			sprintf_s(szSection, "%s-%s", GetServerShortName(), pZoneInfo->LongName);
-			GetPrivateProfileString(szSection, NULL, "", szKeys, MAX_STRING * 25, INIFileName);
-		}
-		default:
-			WriteChatf("%s\ar Sorry we have encountered an error. Please submit an issue to git [Line: %d] %s", PluginMsg, __LINE__, __FUNCTION__);
-			return;
-	}
-
-	std::vector<std::string> Outputs;
-	int NumEntries = countchars(szKeys, ",");//count how many entries their are.
-
-	for (int i = 0; i < NumEntries; i++) {//cycle through all the entries
-		char GMName[MAX_STRING] = "";
-		GetArg(GMName, szKeys, i, 0, 0, 0, ',', 0);
-		if (!strlen(GMName))
-			break;
-
-		//Collect Information for the currently listed GM.
-		char szTemp[MAX_STRING] = { 0 };
-		GetPrivateProfileString("GM", GMName, "", szTemp, MAX_STRING, INIFileName);
-
-		//1: Count
-		char SeenCount[MAX_STRING] = { 0 };
-		GetArg(szTemp, SeenCount, 1, 0, 0, 0, ',', 0);
-
-		char LastSeenDate[MAX_STRING] = { 0 };
-		char ServerName[MAX_STRING] = { 0 };
-		//All History also has the server.
-		if (histValue > eHistory_All) {
-			//2: ServerName
-			GetArg(szTemp, ServerName, 2, 0, 0, 0, ',', 0);
-
-			//3: Date
-			GetArg(szTemp, LastSeenDate, 3, 0, 0, 0, ',', 0);
-		}
-		else {
-			//2: Date
-			GetArg(szTemp, LastSeenDate, 2, 0, 0, 0, ',', 0);
-		}
-
-		switch (histValue) {
-			case eHistory_All:
-				sprintf_s(szTemp, "%sGM %s - seen %s times on server %s, last seen %s\ax", PluginMsg, GMName, SeenCount, ServerName, LastSeenDate);
-				break;
-			case eHistory_Server:
-				sprintf_s(szTemp, "%sGM %s - seen %s times on this server, last seen %s\ax", PluginMsg, GMName, SeenCount, LastSeenDate);
-				break;
-			case eHistory_Zone:
-				sprintf_s(szTemp, "%sGM %s - seen %s times in this zone, last seen %s\ax", PluginMsg, GMName, SeenCount, LastSeenDate);
-				break;
-			default:
-				WriteChatf("%s\ar Sorry we have encountered an error. Please submit an issue to git [Line: %d] %s", PluginMsg, __LINE__, __FUNCTION__);
-				return;
-		}
-
-		Outputs.push_back(szTemp);
-	}
-
-	// What GM's have been seen on all servers?
-	if (!Outputs.empty()) {
-		WriteChatf("%sHistory of GM's on ALL servers\ax", PluginMsg);
-		for (std::string GMInfo : Outputs) {
-			WriteChatf("%s", GMInfo.c_str());//already has PluginMsg input when pushed into the vector.
-		}
-	}
-	else {
-		WriteChatf("%s]ayWe were unable to find any history for \ag%s\ax section", PluginMsg, histValue == eHistory_All ? "All" : histValue == eHistory_Server ? "Server" : "Zone");
-	}
-
-	return;
-}
-
 bool GMCheck()
 {
 	return !GMNames.empty() ? true : false;
@@ -291,137 +130,137 @@ public:
 
 		switch ((GMCheckMembers)pMember->ID)
 		{
-			case GMCheckMembers::Status:
-				Dest.DWord = bGMCheck;
-				Dest.Type = pBoolType;
-				return true;
+		case GMCheckMembers::Status:
+			Dest.DWord = bGMCheck;
+			Dest.Type = pBoolType;
+			return true;
 
-			case GMCheckMembers::GM:
-				Dest.DWord = GMCheck();
-				Dest.Type = pBoolType;
-				return true;
+		case GMCheckMembers::GM:
+			Dest.DWord = GMCheck();
+			Dest.Type = pBoolType;
+			return true;
 
-			case GMCheckMembers::Names:
-			{
-				char szTmp[MAX_STRING] = { 0 };
-				for (std::string GMName : GMNames) {
-					if (szTmp[0])
-						strcat_s(DataTypeTemp, ", ");
+		case GMCheckMembers::Names:
+		{
+			char szTmp[MAX_STRING] = { 0 };
+			for (std::string GMName : GMNames) {
+				if (szTmp[0])
+					strcat_s(DataTypeTemp, ", ");
 
-					strcat_s(DataTypeTemp, GMName.c_str());
-				}
-
-				if (!DataTypeTemp[0])
-					strcpy_s(DataTypeTemp, "");
-
-				Dest.Ptr = DataTypeTemp;
-				Dest.Type = pStringType;
-				return true;
+				strcat_s(DataTypeTemp, GMName.c_str());
 			}
 
-			case GMCheckMembers::Sound:
-				Dest.DWord = bGMSound;
-				Dest.Type = pBoolType;
-				return true;
+			if (!DataTypeTemp[0])
+				strcpy_s(DataTypeTemp, "");
 
-			case GMCheckMembers::Beep:
-				Dest.DWord = bGMBeep;
-				Dest.Type = pBoolType;
-				return true;
+			Dest.Ptr = DataTypeTemp;
+			Dest.Type = pStringType;
+			return true;
+		}
 
-			case GMCheckMembers::Popup:
-				Dest.DWord = bGMPopup;
-				Dest.Type = pBoolType;
-				return true;
+		case GMCheckMembers::Sound:
+			Dest.DWord = bGMSound;
+			Dest.Type = pBoolType;
+			return true;
 
-			case GMCheckMembers::Corpse:
-				Dest.DWord = bGMCorpse;
-				Dest.Type = pBoolType;
-				return true;
+		case GMCheckMembers::Beep:
+			Dest.DWord = bGMBeep;
+			Dest.Type = pBoolType;
+			return true;
 
-			case GMCheckMembers::Quiet:
-				Dest.DWord = bGMQuiet;
-				Dest.Type = pBoolType;
-				return true;
+		case GMCheckMembers::Popup:
+			Dest.DWord = bGMPopup;
+			Dest.Type = pBoolType;
+			return true;
 
-			case GMCheckMembers::Interval:
-				Dest.Int = Reminder_Interval / 1000;
-				Dest.Type = pIntType;
-				return true;
+		case GMCheckMembers::Corpse:
+			Dest.DWord = bGMCorpse;
+			Dest.Type = pBoolType;
+			return true;
 
-			case GMCheckMembers::Enter:
-				strcpy_s(DataTypeTemp, szEnterSound);
-				Dest.Ptr = DataTypeTemp;
-				Dest.Type = pStringType;
-				return true;
+		case GMCheckMembers::Quiet:
+			Dest.DWord = bGMQuiet;
+			Dest.Type = pBoolType;
+			return true;
 
-			case GMCheckMembers::Leave:
-				strcpy_s(DataTypeTemp, szLeaveSound);
-				Dest.Ptr = DataTypeTemp;
-				Dest.Type = pStringType;
-				return true;
+		case GMCheckMembers::Interval:
+			Dest.Int = Reminder_Interval / 1000;
+			Dest.Type = pIntType;
+			return true;
 
-			case GMCheckMembers::Remind:
-				strcpy_s(DataTypeTemp, szRemindSound);
-				Dest.Ptr = DataTypeTemp;
-				Dest.Type = pStringType;
-				return true;
+		case GMCheckMembers::Enter:
+			strcpy_s(DataTypeTemp, szEnterSound);
+			Dest.Ptr = DataTypeTemp;
+			Dest.Type = pStringType;
+			return true;
 
-			case GMCheckMembers::LastGMName:
-				strcpy_s(DataTypeTemp, szLastGMName);
-				Dest.Ptr = DataTypeTemp;
-				Dest.Type = pStringType;
-				return true;
+		case GMCheckMembers::Leave:
+			strcpy_s(DataTypeTemp, szLeaveSound);
+			Dest.Ptr = DataTypeTemp;
+			Dest.Type = pStringType;
+			return true;
 
-			case GMCheckMembers::LastGMTime:
-				strcpy_s(DataTypeTemp, szLastGMTime);
-				Dest.Ptr = DataTypeTemp;
-				Dest.Type = pStringType;
-				return true;
+		case GMCheckMembers::Remind:
+			strcpy_s(DataTypeTemp, szRemindSound);
+			Dest.Ptr = DataTypeTemp;
+			Dest.Type = pStringType;
+			return true;
 
-			case GMCheckMembers::LastGMDate:
-				strcpy_s(DataTypeTemp, szLastGMDate);
-				Dest.Ptr = DataTypeTemp;
-				Dest.Type = pStringType;
-				return true;
+		case GMCheckMembers::LastGMName:
+			strcpy_s(DataTypeTemp, szLastGMName);
+			Dest.Ptr = DataTypeTemp;
+			Dest.Type = pStringType;
+			return true;
 
-			case GMCheckMembers::LastGMZone:
-				strcpy_s(DataTypeTemp, szLastGMZone);
-				Dest.Ptr = DataTypeTemp;
-				Dest.Type = pStringType;
-				return true;
+		case GMCheckMembers::LastGMTime:
+			strcpy_s(DataTypeTemp, szLastGMTime);
+			Dest.Ptr = DataTypeTemp;
+			Dest.Type = pStringType;
+			return true;
 
-			case GMCheckMembers::GMEnterCmd:
-				strcpy_s(DataTypeTemp, szGMEnterCmd);
-				Dest.Ptr = DataTypeTemp;
-				Dest.Type = pStringType;
-				return true;
+		case GMCheckMembers::LastGMDate:
+			strcpy_s(DataTypeTemp, szLastGMDate);
+			Dest.Ptr = DataTypeTemp;
+			Dest.Type = pStringType;
+			return true;
 
-			case GMCheckMembers::GMEnterCmdIf:
-				if (MCEval(szGMEnterCmdIf))
-					strcpy_s(DataTypeTemp, "TRUE");
-				else
-					strcpy_s(DataTypeTemp, "FALSE");
+		case GMCheckMembers::LastGMZone:
+			strcpy_s(DataTypeTemp, szLastGMZone);
+			Dest.Ptr = DataTypeTemp;
+			Dest.Type = pStringType;
+			return true;
 
-				Dest.Ptr = DataTypeTemp;
-				Dest.Type = pStringType;
-				return true;
+		case GMCheckMembers::GMEnterCmd:
+			strcpy_s(DataTypeTemp, szGMEnterCmd);
+			Dest.Ptr = DataTypeTemp;
+			Dest.Type = pStringType;
+			return true;
 
-			case GMCheckMembers::GMLeaveCmd:
-				strcpy_s(DataTypeTemp, szGMLeaveCmd);
-				Dest.Ptr = DataTypeTemp;
-				Dest.Type = pStringType;
-				return true;
+		case GMCheckMembers::GMEnterCmdIf:
+			if (MCEval(szGMEnterCmdIf))
+				strcpy_s(DataTypeTemp, "TRUE");
+			else
+				strcpy_s(DataTypeTemp, "FALSE");
 
-			case GMCheckMembers::GMLeaveCmdIf:
-				if (MCEval(szGMLeaveCmdIf))
-					strcpy_s(DataTypeTemp, "TRUE");
-				else
-					strcpy_s(DataTypeTemp, "FALSE");
+			Dest.Ptr = DataTypeTemp;
+			Dest.Type = pStringType;
+			return true;
 
-				Dest.Ptr = DataTypeTemp;
-				Dest.Type = pStringType;
-				return true;
+		case GMCheckMembers::GMLeaveCmd:
+			strcpy_s(DataTypeTemp, szGMLeaveCmd);
+			Dest.Ptr = DataTypeTemp;
+			Dest.Type = pStringType;
+			return true;
+
+		case GMCheckMembers::GMLeaveCmdIf:
+			if (MCEval(szGMLeaveCmdIf))
+				strcpy_s(DataTypeTemp, "TRUE");
+			else
+				strcpy_s(DataTypeTemp, "FALSE");
+
+			Dest.Ptr = DataTypeTemp;
+			Dest.Type = pStringType;
+			return true;
 		}
 
 		return false;
@@ -1033,6 +872,169 @@ void SetupVolumesFromINI()
 	x = (float)65535.0 * ((float)i / (float)100.0);
 	NewVol = NewVol + (((DWORD)x) << 16);
 }
+
+
+int countchars(char* inputString, char* searchchar) {
+	if (searchchar[0]) {
+		int count = 0;
+		const char* pLast = inputString - 1;
+
+		while (pLast = strchr(&pLast[1], searchchar[0]))
+			count++;
+
+		return count;
+	}
+	return 0;
+}
+
+void TrackGMs(char* GMName) {
+	char szSection[MAX_STRING] = { 0 };
+	char szTemp[MAX_STRING] = { 0 };
+	int iCount = 0;
+	char szLookup[MAX_STRING] = { 0 };
+	char szTime[MAX_STRING] = { 0 };
+	errno_t err;
+
+	time_t rawtime;
+	struct tm timeinfo = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	time(&rawtime);
+	err = localtime_s(&timeinfo, &rawtime);
+	//strncpy(szTime,asctime(timeinfo),24);
+	err = asctime_s(szTime, MAX_STRING, &timeinfo);
+
+	// Store total GM count regardless of server
+	strcpy_s(szSection, "GM");
+	sprintf_s(szLookup, "%s", GMName);
+	iCount = GetPrivateProfileInt(szSection, szLookup, 0, INIFileName) + 1;
+	sprintf_s(szTemp, "%d,%s,%s", iCount, GetServerShortName(), szTime);
+	WritePrivateProfileString(szSection, szLookup, szTemp, INIFileName);
+
+	// Store GM count by Server
+	sprintf_s(szSection, "%s", GetServerShortName());
+	sprintf_s(szLookup, "%s", GMName);
+	iCount = GetPrivateProfileInt(szSection, szLookup, 0, INIFileName) + 1;
+	sprintf_s(szTemp, "%d,%s", iCount, szTime);
+	WritePrivateProfileString(szSection, szLookup, szTemp, INIFileName);
+
+	// Store GM count by Server-Zone
+	sprintf_s(szSection, "%s-%s", GetServerShortName(), pZoneInfo->LongName);
+	sprintf_s(szLookup, "%s", GMName);
+	iCount = GetPrivateProfileInt(szSection, szLookup, 0, INIFileName) + 1;
+	sprintf_s(szTemp, "%d,%s", iCount, szTime);
+	WritePrivateProfileString(szSection, szLookup, szTemp, INIFileName);
+
+	return;
+}
+
+void HistoryGMs(HistoryType histValue) {
+	/*
+		List of GMs.
+			[GM]
+			Firhumrng=20,firiona,Mon Aug 30 11:10:44 2021
+			Firhumnec=20,firiona,Wed Jan 27 15:00:07 2021
+			Morrganne=4,firiona,Wed Jan 27 18:20:21 2021
+
+		List of GMs for this server.
+			[firiona]
+			Firhumrng=20,Mon Aug 30 11:10:44 2021
+			Treantz=1,Thu Dec 17 18:10:29 2020
+			Niente=29,Fri Dec  9 17:34:42 2022
+
+		Zone specific example :
+			[firiona-Cobalt Scar]
+			Firhumrng = 1, Wed Dec 16 12:57 : 27 2020
+	*/
+
+	char szKeys[MAX_STRING * 25] = { 0 };
+
+	switch (histValue) {
+	case eHistory_All:
+	{
+		char szKeys[MAX_STRING * 25] = { 0 };
+		//Get list of entries under "GM" section
+		GetPrivateProfileString("GM", NULL, "", szKeys, MAX_STRING * 25, INIFileName);
+		break;
+	}
+	case eHistory_Server:
+	{
+		char szKeys[MAX_STRING * 25] = { 0 };
+		GetPrivateProfileString(GetServerShortName(), NULL, "", szKeys, MAX_STRING * 25, INIFileName);
+	}
+	case eHistory_Zone:
+	{
+		char szSection[MAX_STRING] = { 0 };
+		sprintf_s(szSection, "%s-%s", GetServerShortName(), pZoneInfo->LongName);
+		GetPrivateProfileString(szSection, NULL, "", szKeys, MAX_STRING * 25, INIFileName);
+	}
+	default:
+		WriteChatf("%s\ar Sorry we have encountered an error. Please submit an issue to git [Line: %d] %s", PluginMsg, __LINE__, __FUNCTION__);
+		return;
+	}
+
+	std::vector<std::string> Outputs;
+	int NumEntries = countchars(szKeys, ",");//count how many entries their are.
+
+	for (int i = 0; i < NumEntries; i++) {//cycle through all the entries
+		char GMName[MAX_STRING] = "";
+		GetArg(GMName, szKeys, i, 0, 0, 0, ',', 0);
+		if (!strlen(GMName))
+			break;
+
+		//Collect Information for the currently listed GM.
+		char szTemp[MAX_STRING] = { 0 };
+		GetPrivateProfileString("GM", GMName, "", szTemp, MAX_STRING, INIFileName);
+
+		//1: Count
+		char SeenCount[MAX_STRING] = { 0 };
+		GetArg(szTemp, SeenCount, 1, 0, 0, 0, ',', 0);
+
+		char LastSeenDate[MAX_STRING] = { 0 };
+		char ServerName[MAX_STRING] = { 0 };
+		//All History also has the server.
+		if (histValue > eHistory_All) {
+			//2: ServerName
+			GetArg(szTemp, ServerName, 2, 0, 0, 0, ',', 0);
+
+			//3: Date
+			GetArg(szTemp, LastSeenDate, 3, 0, 0, 0, ',', 0);
+		}
+		else {
+			//2: Date
+			GetArg(szTemp, LastSeenDate, 2, 0, 0, 0, ',', 0);
+		}
+
+		switch (histValue) {
+		case eHistory_All:
+			sprintf_s(szTemp, "%sGM %s - seen %s times on server %s, last seen %s\ax", PluginMsg, GMName, SeenCount, ServerName, LastSeenDate);
+			break;
+		case eHistory_Server:
+			sprintf_s(szTemp, "%sGM %s - seen %s times on this server, last seen %s\ax", PluginMsg, GMName, SeenCount, LastSeenDate);
+			break;
+		case eHistory_Zone:
+			sprintf_s(szTemp, "%sGM %s - seen %s times in this zone, last seen %s\ax", PluginMsg, GMName, SeenCount, LastSeenDate);
+			break;
+		default:
+			WriteChatf("%s\ar Sorry we have encountered an error. Please submit an issue to git [Line: %d] %s", PluginMsg, __LINE__, __FUNCTION__);
+			return;
+		}
+
+		Outputs.push_back(szTemp);
+	}
+
+	// What GM's have been seen on all servers?
+	if (!Outputs.empty()) {
+		WriteChatf("%sHistory of GM's on ALL servers\ax", PluginMsg);
+		for (std::string GMInfo : Outputs) {
+			WriteChatf("%s", GMInfo.c_str());//already has PluginMsg input when pushed into the vector.
+		}
+	}
+	else {
+		WriteChatf("%s]ayWe were unable to find any history for \ag%s\ax section", PluginMsg, histValue == eHistory_All ? "All" : histValue == eHistory_Server ? "Server" : "Zone");
+	}
+
+	return;
+}
+
 
 PLUGIN_API VOID InitializePlugin()
 {
