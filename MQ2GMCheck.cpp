@@ -628,6 +628,8 @@ void GMTest(char* szLine)
 
 		if (bGMPopup)
 			DisplayOverlayText(szPopup, CONCOLOR_RED, 100, 500, 500, 3000);
+
+		TrackGMs("NotARealGMThisIsMQTestNPC");
 	}
 	else if (!strncmp(szArg, "leave", 5))
 	{
