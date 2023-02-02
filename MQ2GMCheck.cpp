@@ -592,14 +592,8 @@ void TrackGMs(char* GMName) {
 	int iCount = 0;
 	char szLookup[MAX_STRING] = { 0 };
 	char szTime[MAX_STRING] = { 0 };
-	errno_t err;
 
-	time_t rawtime;
-	struct tm timeinfo = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-	time(&rawtime);
-	err = localtime_s(&timeinfo, &rawtime);
-	//strncpy(szTime,asctime(timeinfo),24);
-	err = asctime_s(szTime, MAX_STRING, &timeinfo);
+	sprintf_s(szTime, "Date: %s Time: %s", DisplayDate(), DisplayTime());
 
 	// Store total GM count regardless of server
 	strcpy_s(szSection, "GM");
