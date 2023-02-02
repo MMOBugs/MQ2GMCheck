@@ -1093,7 +1093,7 @@ PLUGIN_API VOID OnPulse()
 		if (MQGetTickCount64() >= Check_PulseCount + Reminder_Interval && Reminder_Interval)
 		{
 			Check_PulseCount = MQGetTickCount64();
-			if (bGMAlert = GMCheck() && !bGMQuiet && !GMNames.empty() && bGMCheck)
+			if (bGMAlert = GMCheck() && !bGMQuiet && bGMCheck)
 			{
 				char szNames[MAX_STRING] = { 0 };
 				for (const std::string GMName : GMNames) {
