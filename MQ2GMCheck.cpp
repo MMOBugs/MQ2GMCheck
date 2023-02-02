@@ -802,78 +802,70 @@ void HistoryGMs(HistoryType histValue) {
 			[firiona-Cobalt Scar]
 			Firhumrng = 1, Wed Dec 16 12:57 : 27 2020
 	*/
-
-	char szKeys[MAX_STRING] = { 0 };
-
+	std::vector<std::string> vKeys;
+	char szSection[MAX_STRING] = { 0 };
 	switch (histValue) {
-		case eHistory_All:
-		{
-			char szKeys[MAX_STRING] = { 0 };
-			//Get list of entries under "GM" section
-			GetPrivateProfileString("GM", NULL, "", szKeys, MAX_STRING, INIFileName);
-			break;
-		}
-		case eHistory_Server:
-		{
-			char szKeys[MAX_STRING] = { 0 };
-			GetPrivateProfileString(GetServerShortName(), NULL, "", szKeys, MAX_STRING, INIFileName);
-		}
-		case eHistory_Zone:
-		{
-			char szSection[MAX_STRING] = { 0 };
-			sprintf_s(szSection, "%s-%s", GetServerShortName(), pZoneInfo->LongName);
-			GetPrivateProfileString(szSection, NULL, "", szKeys, MAX_STRING, INIFileName);
-		}
-		default:
-			WriteChatf("%s\ar Sorry we have encountered an error. Please submit an issue to git [Line: %d] %s", PluginMsg, __LINE__, __FUNCTION__);
-			return;
+	case eHistory_All:
+		strcpy_s(szSection, "GM");
+		vKeys = GetPrivateProfileKeys(szSection, INIFileName);
+		break;
+	case eHistory_Server:
+		strcpy_s(szSection, GetServerShortName());
+		vKeys = GetPrivateProfileKeys(szSection, INIFileName);
+		break;
+	case eHistory_Zone:
+	{
+
+		sprintf_s(szSection, "%s-%s", GetServerShortName(), pZoneInfo->LongName);
+		vKeys = GetPrivateProfileKeys(szSection, INIFileName);
+		break;
+	}
+	default:
+		WriteChatf("%s\ar Sorry we have encountered an error. Please submit an issue to git [Line: %d] %s, histValue: %i", PluginMsg, __LINE__, __FUNCTION__, histValue);
+		return;
 	}
 
 	std::vector<std::string> Outputs;
-	int NumEntries = countchars(szKeys, ",");//count how many entries their are.
-
-	for (int i = 0; i < NumEntries; i++) {//cycle through all the entries
-		char GMName[MAX_STRING] = "";
-		GetArg(GMName, szKeys, i, 0, 0, 0, ',', 0);
-		if (!strlen(GMName))
-			break;
+	for (std::string GMName : vKeys) {//cycle through all the entries
+		if (GMName.empty())
+			continue;
 
 		//Collect Information for the currently listed GM.
 		char szTemp[MAX_STRING] = { 0 };
-		GetPrivateProfileString("GM", GMName, "", szTemp, MAX_STRING, INIFileName);
+		GetPrivateProfileString(szSection, GMName.c_str(), "", szTemp, MAX_STRING, INIFileName);
 
 		//1: Count
 		char SeenCount[MAX_STRING] = { 0 };
-		GetArg(szTemp, SeenCount, 1, 0, 0, 0, ',', 0);
+		GetArg(SeenCount, szTemp, 1, 0, 0, 0, ',', 0);
 
 		char LastSeenDate[MAX_STRING] = { 0 };
 		char ServerName[MAX_STRING] = { 0 };
 		//All History also has the server.
 		if (histValue == eHistory_All) {
 			//2: ServerName
-			GetArg(szTemp, ServerName, 2, 0, 0, 0, ',', 0);
+			GetArg(ServerName, szTemp, 2, 0, 0, 0, ',', 0);
 
 			//3: Date
-			GetArg(szTemp, LastSeenDate, 3, 0, 0, 0, ',', 0);
+			GetArg(LastSeenDate, szTemp, 3, 0, 0, 0, ',', 0);
 		}
 		else {
 			//2: Date
-			GetArg(szTemp, LastSeenDate, 2, 0, 0, 0, ',', 0);
+			GetArg(LastSeenDate, szTemp, 2, 0, 0, 0, ',', 0);
 		}
 
 		switch (histValue) {
-			case eHistory_All:
-				sprintf_s(szTemp, "%sGM %s - seen %s times on server %s, last seen %s\ax", PluginMsg, GMName, SeenCount, ServerName, LastSeenDate);
-				break;
-			case eHistory_Server:
-				sprintf_s(szTemp, "%sGM %s - seen %s times on this server, last seen %s\ax", PluginMsg, GMName, SeenCount, LastSeenDate);
-				break;
-			case eHistory_Zone:
-				sprintf_s(szTemp, "%sGM %s - seen %s times in this zone, last seen %s\ax", PluginMsg, GMName, SeenCount, LastSeenDate);
-				break;
-			default:
-				WriteChatf("%s\ar Sorry we have encountered an error. Please submit an issue to git [Line: %d] %s", PluginMsg, __LINE__, __FUNCTION__);
-				return;
+		case eHistory_All:
+			sprintf_s(szTemp, "%sGM \ap%s\ax - seen \a-t%s\ax times on server \a-t%s\ax, last seen \a-t%s", PluginMsg, GMName.c_str(), SeenCount, ServerName, LastSeenDate);
+			break;
+		case eHistory_Server:
+			sprintf_s(szTemp, "%sGM \ap%s\ax - seen \a-t%s\ax times on this server, last seen \a-t%s", PluginMsg, GMName.c_str(), SeenCount, LastSeenDate);
+			break;
+		case eHistory_Zone:
+			sprintf_s(szTemp, "%sGM \ap%s\ax - seen \a-t%s\ax times in this zone, last seen \a-t%s", PluginMsg, GMName.c_str(), SeenCount, LastSeenDate);
+			break;
+		default:
+			WriteChatf("%s\ar Sorry we have encountered an error. Please submit an issue to git [Line: \at%d\ax] \at%s", PluginMsg, __LINE__, __FUNCTION__);
+			return;
 		}
 
 		Outputs.push_back(szTemp);
@@ -881,13 +873,13 @@ void HistoryGMs(HistoryType histValue) {
 
 	// What GM's have been seen on all servers?
 	if (!Outputs.empty()) {
-		WriteChatf("%sHistory of GM's on ALL servers\ax", PluginMsg);
+		WriteChatf("\n%sHistory of GM's in \ag%s\ax section", PluginMsg, (histValue == eHistory_All ? "All" : histValue == eHistory_Server ? "Server" : "Zone"));
 		for (std::string GMInfo : Outputs) {
 			WriteChatf("%s", GMInfo.c_str());//already has PluginMsg input when pushed into the vector.
 		}
 	}
 	else {
-		WriteChatf("%s]ayWe were unable to find any history for \ag%s\ax section", PluginMsg, histValue == eHistory_All ? "All" : histValue == eHistory_Server ? "Server" : "Zone");
+		WriteChatf("%s\ayWe were unable to find any history for \ag%s\ax section", PluginMsg, (histValue == eHistory_All ? "All" : histValue == eHistory_Server ? "Server" : "Zone"));
 	}
 
 	return;
