@@ -22,7 +22,6 @@ PLUGIN_VERSION(4.00);
 #pragma comment(lib,"winmm.lib")
 
 namespace GMCheckSpace {
-	const std::string PluginName = "MQ2GMCheck";
 	const std::string PluginMsg = "/ay[MQ2GMCheck] ";
 
 	char szEnterSound[MAX_STRING] = { 0 }, szLeaveSound[MAX_STRING] = { 0 }, szRemindSound[MAX_STRING] = { 0 },
@@ -277,7 +276,7 @@ public:
 
 void GMCheckStatus(bool MentionHelp = false)
 {
-	WriteChatf("\at%s \agv%1.2f", PluginName.c_str(), MQ2Version);
+	WriteChatf("\at%s \agv%1.2f", mqplugin::PluginName, MQ2Version);
 	char szTemp[MAX_STRING] = { 0 };
 
 	if (Reminder_Interval)
@@ -883,7 +882,7 @@ PLUGIN_API VOID InitializePlugin()
 	ReadSettings();
 
 	AddMQ2Data("GMCheck", MQ2GMCheckType::dataGMCheck);
-	bmMQ2GMCheck = AddMQ2Benchmark(PluginName.c_str());
+	bmMQ2GMCheck = AddMQ2Benchmark(mqplugin::PluginName);
 	pGMCheckType = new MQ2GMCheckType;
 	AddCommand("/gmcheck", GMCheckCmd);
 
