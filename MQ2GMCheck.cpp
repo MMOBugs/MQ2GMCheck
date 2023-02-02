@@ -911,10 +911,9 @@ void GMHelp() {
 	WriteChatf("%s\ay/gmcheck load \ax: \agLoad settings from INI file.", PluginMsg);
 	WriteChatf("%s\ay/gmcheck test {enter|leave|remind} \ax: Test alerts & sounds for the indicated type.  e.g.: /gmcheck test leave", PluginMsg);
 	WriteChatf("%s\ay/gmcheck ss {enter|leave|remind} SoundFileName \ax: Set the filename (wav/mp3) to play for indicated alert. Full path if sound file is not in your MQ2 dir.", PluginMsg);
-	WriteChatf("%s\ay/gmcheck history - complete history dump", PluginMsg);
-	WriteChatf("%s\ay/gmcheck zone - history of GM's in this zone", PluginMsg);
-	WriteChatf("%s\ay/gmcheck server - history of GM's on this server", PluginMsg);
-	WriteChatf("%s\ay/gmcheck all - history of GM's on all servers", PluginMsg);
+	WriteChatf("%s\ay/gmcheck zone - history of GM's in this zone.", PluginMsg);
+	WriteChatf("%s\ay/gmcheck server - history of GM's on this server.", PluginMsg);
+	WriteChatf("%s\ay/gmcheck all - history of GM's on all servers.", PluginMsg);
 
 	WriteChatf("%s\ay/gmcheck help \ax: \agThis help.\n", PluginMsg);
 }
