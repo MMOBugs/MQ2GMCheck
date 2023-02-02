@@ -552,25 +552,6 @@ void GMReminder(char* szLine)
 		WriteChatf("%s\aw: Reminder interval set to \ar%u \awseconds (\arDISABLED\aw).  Remember to use \ay/gmsave \awif you want this to be a permanent change.", PluginMsg, Reminder_Interval / 1000);
 }
 
-void GMHelp()
-{
-	WriteChatf("\n%s\ayMQ2GMCheck Commands:\n", PluginMsg);
-	WriteChatf("%s\ay/gmcheck [status] \ax: \agShow current settings/status.", PluginMsg);
-	WriteChatf("%s\ay/gmcheck quiet [off|on]\ax: \agToggle all GM alert & reminder sounds, or force on/off.", PluginMsg);
-	WriteChatf("%s\ay/gmcheck [off|on]\ax: \agTurn GM alerting on or off.", PluginMsg);
-	WriteChatf("%s\ay/gmcheck sound [off|on]\ax: \agToggle playing sounds for GM alerts, or force on/off.", PluginMsg);
-	WriteChatf("%s\ay/gmcheck beep [off|on]\ax: \agToggle playing beeps for GM alerts, or force on/off.", PluginMsg);
-	WriteChatf("%s\ay/gmcheck popup [off|on]\ax: \agToggle showing popup messages for GM alerts, or force on/off.", PluginMsg);
-	WriteChatf("%s\ay/gmcheck chat [off|on]\ax: \agToggle GM alert being output to the MQ2 chat window, or force on/off.", PluginMsg);
-	WriteChatf("%s\ay/gmcheck corpse [off|on]\ax: \agToggle GM alert being ignored if the spawn is a corpse, or force on/off.", PluginMsg);
-	WriteChatf("%s\ay/gmcheck rem \ax: \agChange alert reminder interval, in seconds.  e.g.: /gmcheck rem 15 (0 to disable)", PluginMsg);
-	WriteChatf("%s\ay/gmcheck save \ax: \agSave current settings.", PluginMsg);
-	WriteChatf("%s\ay/gmcheck load \ax: \agLoad settings from INI file.", PluginMsg);
-	WriteChatf("%s\ay/gmcheck test {enter|leave|remind} \ax: Test alerts & sounds for the indicated type.  e.g.: /gmcheck test leave", PluginMsg);
-	WriteChatf("%s\ay/gmcheck ss {enter|leave|remind} SoundFileName \ax: Set the filename (wav/mp3) to play for indicated alert. Full path if sound file is not in your MQ2 dir.", PluginMsg);
-	WriteChatf("%s\ay/gmcheck help \ax: \agThis help.\n", PluginMsg);
-}
-
 void GMQuiet(char* szLine)
 {
 	char szArg[MAX_STRING];
@@ -803,8 +784,152 @@ void UpdateAlerts()
 	}
 }
 
-void GMCheckCmd(PlayerClient* pChar, char* szLine)
-{
+int countchars(char* inputString, char* searchchar) {
+	if (searchchar[0]) {
+		int count = 0;
+		const char* pLast = inputString - 1;
+
+		while (pLast = strchr(&pLast[1], searchchar[0]))
+			count++;
+
+		return count;
+	}
+	return 0;
+}
+
+void HistoryGMs(HistoryType histValue) {
+	/*
+		List of GMs.
+			[GM]
+			Firhumrng=20,firiona,Mon Aug 30 11:10:44 2021
+			Firhumnec=20,firiona,Wed Jan 27 15:00:07 2021
+			Morrganne=4,firiona,Wed Jan 27 18:20:21 2021
+
+		List of GMs for this server.
+			[firiona]
+			Firhumrng=20,Mon Aug 30 11:10:44 2021
+			Treantz=1,Thu Dec 17 18:10:29 2020
+			Niente=29,Fri Dec  9 17:34:42 2022
+
+		Zone specific example :
+			[firiona-Cobalt Scar]
+			Firhumrng = 1, Wed Dec 16 12:57 : 27 2020
+	*/
+
+	char szKeys[MAX_STRING] = { 0 };
+
+	switch (histValue) {
+		case eHistory_All:
+		{
+			char szKeys[MAX_STRING] = { 0 };
+			//Get list of entries under "GM" section
+			GetPrivateProfileString("GM", NULL, "", szKeys, MAX_STRING, INIFileName);
+			break;
+		}
+		case eHistory_Server:
+		{
+			char szKeys[MAX_STRING] = { 0 };
+			GetPrivateProfileString(GetServerShortName(), NULL, "", szKeys, MAX_STRING, INIFileName);
+		}
+		case eHistory_Zone:
+		{
+			char szSection[MAX_STRING] = { 0 };
+			sprintf_s(szSection, "%s-%s", GetServerShortName(), pZoneInfo->LongName);
+			GetPrivateProfileString(szSection, NULL, "", szKeys, MAX_STRING, INIFileName);
+		}
+		default:
+			WriteChatf("%s\ar Sorry we have encountered an error. Please submit an issue to git [Line: %d] %s", PluginMsg, __LINE__, __FUNCTION__);
+			return;
+	}
+
+	std::vector<std::string> Outputs;
+	int NumEntries = countchars(szKeys, ",");//count how many entries their are.
+
+	for (int i = 0; i < NumEntries; i++) {//cycle through all the entries
+		char GMName[MAX_STRING] = "";
+		GetArg(GMName, szKeys, i, 0, 0, 0, ',', 0);
+		if (!strlen(GMName))
+			break;
+
+		//Collect Information for the currently listed GM.
+		char szTemp[MAX_STRING] = { 0 };
+		GetPrivateProfileString("GM", GMName, "", szTemp, MAX_STRING, INIFileName);
+
+		//1: Count
+		char SeenCount[MAX_STRING] = { 0 };
+		GetArg(szTemp, SeenCount, 1, 0, 0, 0, ',', 0);
+
+		char LastSeenDate[MAX_STRING] = { 0 };
+		char ServerName[MAX_STRING] = { 0 };
+		//All History also has the server.
+		if (histValue == eHistory_All) {
+			//2: ServerName
+			GetArg(szTemp, ServerName, 2, 0, 0, 0, ',', 0);
+
+			//3: Date
+			GetArg(szTemp, LastSeenDate, 3, 0, 0, 0, ',', 0);
+		}
+		else {
+			//2: Date
+			GetArg(szTemp, LastSeenDate, 2, 0, 0, 0, ',', 0);
+		}
+
+		switch (histValue) {
+			case eHistory_All:
+				sprintf_s(szTemp, "%sGM %s - seen %s times on server %s, last seen %s\ax", PluginMsg, GMName, SeenCount, ServerName, LastSeenDate);
+				break;
+			case eHistory_Server:
+				sprintf_s(szTemp, "%sGM %s - seen %s times on this server, last seen %s\ax", PluginMsg, GMName, SeenCount, LastSeenDate);
+				break;
+			case eHistory_Zone:
+				sprintf_s(szTemp, "%sGM %s - seen %s times in this zone, last seen %s\ax", PluginMsg, GMName, SeenCount, LastSeenDate);
+				break;
+			default:
+				WriteChatf("%s\ar Sorry we have encountered an error. Please submit an issue to git [Line: %d] %s", PluginMsg, __LINE__, __FUNCTION__);
+				return;
+		}
+
+		Outputs.push_back(szTemp);
+	}
+
+	// What GM's have been seen on all servers?
+	if (!Outputs.empty()) {
+		WriteChatf("%sHistory of GM's on ALL servers\ax", PluginMsg);
+		for (std::string GMInfo : Outputs) {
+			WriteChatf("%s", GMInfo.c_str());//already has PluginMsg input when pushed into the vector.
+		}
+	}
+	else {
+		WriteChatf("%s]ayWe were unable to find any history for \ag%s\ax section", PluginMsg, histValue == eHistory_All ? "All" : histValue == eHistory_Server ? "Server" : "Zone");
+	}
+
+	return;
+}
+
+void GMHelp() {
+	WriteChatf("\n%s\ayMQ2GMCheck Commands:\n", PluginMsg);
+	WriteChatf("%s\ay/gmcheck [status] \ax: \agShow current settings/status.", PluginMsg);
+	WriteChatf("%s\ay/gmcheck quiet [off|on]\ax: \agToggle all GM alert & reminder sounds, or force on/off.", PluginMsg);
+	WriteChatf("%s\ay/gmcheck [off|on]\ax: \agTurn GM alerting on or off.", PluginMsg);
+	WriteChatf("%s\ay/gmcheck sound [off|on]\ax: \agToggle playing sounds for GM alerts, or force on/off.", PluginMsg);
+	WriteChatf("%s\ay/gmcheck beep [off|on]\ax: \agToggle playing beeps for GM alerts, or force on/off.", PluginMsg);
+	WriteChatf("%s\ay/gmcheck popup [off|on]\ax: \agToggle showing popup messages for GM alerts, or force on/off.", PluginMsg);
+	WriteChatf("%s\ay/gmcheck chat [off|on]\ax: \agToggle GM alert being output to the MQ2 chat window, or force on/off.", PluginMsg);
+	WriteChatf("%s\ay/gmcheck corpse [off|on]\ax: \agToggle GM alert being ignored if the spawn is a corpse, or force on/off.", PluginMsg);
+	WriteChatf("%s\ay/gmcheck rem \ax: \agChange alert reminder interval, in seconds.  e.g.: /gmcheck rem 15 (0 to disable)", PluginMsg);
+	WriteChatf("%s\ay/gmcheck save \ax: \agSave current settings.", PluginMsg);
+	WriteChatf("%s\ay/gmcheck load \ax: \agLoad settings from INI file.", PluginMsg);
+	WriteChatf("%s\ay/gmcheck test {enter|leave|remind} \ax: Test alerts & sounds for the indicated type.  e.g.: /gmcheck test leave", PluginMsg);
+	WriteChatf("%s\ay/gmcheck ss {enter|leave|remind} SoundFileName \ax: Set the filename (wav/mp3) to play for indicated alert. Full path if sound file is not in your MQ2 dir.", PluginMsg);
+	WriteChatf("%s\ay/gmcheck history - complete history dump", PluginMsg);
+	WriteChatf("%s\ay/gmcheck zone - history of GM's in this zone", PluginMsg);
+	WriteChatf("%s\ay/gmcheck server - history of GM's on this server", PluginMsg);
+	WriteChatf("%s\ay/gmcheck all - history of GM's on all servers", PluginMsg);
+
+	WriteChatf("%s\ay/gmcheck help \ax: \agThis help.\n", PluginMsg);
+}
+
+void GMCheckCmd(PlayerClient* pChar, char* szLine) {
 	char szArg1[MAX_STRING], szArg2[MAX_STRING];
 	GetArg(szArg1, szLine, 1);
 	if (!_stricmp(szArg1, "on"))
@@ -879,7 +1004,18 @@ void GMCheckCmd(PlayerClient* pChar, char* szLine)
 	{
 		GMCheckStatus();
 	}
-	else
+	else if (!_stricmp(szArg1, "Zone"))
+	{
+		HistoryGMs(eHistory_Zone);
+	}
+	else if (!_stricmp(szArg1, "Server"))
+	{
+		HistoryGMs(eHistory_Server);
+	}
+	else if (!_stricmp(szArg1, "All"))
+	{
+		HistoryGMs(eHistory_All);
+	} else
 		GMCheckStatus(true);
 }
 
@@ -906,20 +1042,6 @@ void SetupVolumesFromINI()
 	WritePrivateProfileInt("Settings", "RightVolume", i, INIFileName);
 	x = (float)65535.0 * ((float)i / (float)100.0);
 	NewVol = NewVol + (((DWORD)x) << 16);
-}
-
-
-int countchars(char* inputString, char* searchchar) {
-	if (searchchar[0]) {
-		int count = 0;
-		const char* pLast = inputString - 1;
-
-		while (pLast = strchr(&pLast[1], searchchar[0]))
-			count++;
-
-		return count;
-	}
-	return 0;
 }
 
 void HistoryGMs(HistoryType histValue) {
@@ -987,7 +1109,7 @@ void HistoryGMs(HistoryType histValue) {
 		char LastSeenDate[MAX_STRING] = { 0 };
 		char ServerName[MAX_STRING] = { 0 };
 		//All History also has the server.
-		if (histValue > eHistory_All) {
+		if (histValue == eHistory_All) {
 			//2: ServerName
 			GetArg(szTemp, ServerName, 2, 0, 0, 0, ',', 0);
 
