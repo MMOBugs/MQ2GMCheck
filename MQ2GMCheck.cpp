@@ -1122,7 +1122,6 @@ PLUGIN_API VOID OnAddSpawn(PlayerClient* pSpawn)
 		if (!strlen(pSpawn->DisplayedName))
 			return;
 
-		WriteChatf("[%d] Adding %s", __LINE__, pSpawn->DisplayedName);
 		TrackGMs(pSpawn->DisplayedName);
 		GMNames.push_back(pSpawn->DisplayedName);
 		strcpy_s(szLastGMName, pSpawn->DisplayedName);
