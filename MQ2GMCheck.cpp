@@ -45,6 +45,148 @@ namespace GMCheckSpace {
 
 using namespace GMCheckSpace;
 
+void HistoryGMAllServers() {
+	char szSection[MAX_STRING] = { 0 };
+	char szTemp[MAX_STRING] = { 0 };
+	char szServer[MAX_STRING] = { 0 };
+	char szTime[MAX_STRING] = { 0 };
+	char szCount[MAX_STRING] = { 0 };
+	char szKeys[MAX_STRING * 25] = { 0 };
+	char* pch, * next_pch;
+	int count = 0;
+
+	// What GM's have been seen on all servers?
+	WriteChatf("\arGMCHECK: History of GM's on ALL servers\ax");
+	strcpy_s(szSection, "GM");
+	GetPrivateProfileString(szSection, NULL, "", szKeys, MAX_STRING * 25, INIFileName);
+	PCHAR pKeys = szKeys;
+	while (pKeys[0] != 0) {
+		GetPrivateProfileString(szSection, pKeys, "", szTemp, MAX_STRING, INIFileName);
+		if ((strstr(szTemp, ",") != NULL) && (szTemp[0] != 0)) {
+			count++;
+			pch = strtok_s(szTemp, ",", &next_pch);
+			strcpy_s(szCount, pch);
+			pch = strtok_s(NULL, ",", &next_pch);
+			strcpy_s(szServer, pch);
+			pch = strtok_s(NULL, ",", &next_pch);
+			strcpy_s(szTime, pch);
+			WriteChatf("\arGM %s - seen %s times on server %s, last seen %s\ax", pKeys, szCount, szServer, szTime);
+		}
+		pKeys += strlen(pKeys) + 1;
+	}
+	if (!count) WriteChatf("\arNo GM's seen yet!\ax");
+	return;
+}
+
+void HistoryGMThisServer() {
+	char szSection[MAX_STRING] = { 0 };
+	char szTemp[MAX_STRING] = { 0 };
+	char szTime[MAX_STRING] = { 0 };
+	char szCount[MAX_STRING] = { 0 };
+	char szKeys[MAX_STRING * 25] = { 0 };
+	char* pch, * next_pch;
+	int count = 0;
+
+	// What GM's have been seen on this server?
+	WriteChatf("\arGMCHECK: History of GM's on this server\ax");
+	sprintf_s(szSection, "%s", GetServerShortName());
+	GetPrivateProfileString(szSection, NULL, "", szKeys, MAX_STRING * 25, INIFileName);
+	PCHAR pKeys = szKeys;
+	while (pKeys[0] != 0) {
+		GetPrivateProfileString(szSection, pKeys, "", szTemp, MAX_STRING, INIFileName);
+		if ((strstr(szTemp, ",") != NULL) && (szTemp[0] != 0)) {
+			count++;
+			pch = strtok_s(szTemp, ",", &next_pch);
+			strcpy_s(szCount, pch);
+			pch = strtok_s(NULL, ",", &next_pch);
+			strcpy_s(szTime, pch);
+			WriteChatf("\arGM %s - seen %s times on this server, last seen %s\ax", pKeys, szCount, szTime);
+		}
+		pKeys += strlen(pKeys) + 1;
+	}
+	if (!count) WriteChatf("\arNo GM's seen on this server!\ax");
+	return;
+}
+
+void HistoryGMThisZone() {
+	char szSection[MAX_STRING] = { 0 };
+	char szTemp[MAX_STRING] = { 0 };
+	char szTime[MAX_STRING] = { 0 };
+	char szCount[MAX_STRING] = { 0 };
+	char szKeys[MAX_STRING * 25] = { 0 };
+	char* pch, * next_pch;
+	int count = 0;
+
+	// What GM's have been seen on this server in this zone?
+	WriteChatf("\arGMCHECK: History of GM's in this zone on this server\ax");
+	sprintf_s(szSection, "%s-%s", GetServerShortName(), pZoneInfo->LongName);
+	GetPrivateProfileString(szSection, NULL, "", szKeys, MAX_STRING * 25, INIFileName);
+	PCHAR pKeys = szKeys;
+	while (pKeys[0] != 0) {
+		GetPrivateProfileString(szSection, pKeys, "", szTemp, MAX_STRING, INIFileName);
+		if ((strstr(szTemp, ",") != NULL) && (szTemp[0] != 0)) {
+			count++;
+			pch = strtok_s(szTemp, ",", &next_pch);
+			strcpy_s(szCount, pch);
+			pch = strtok_s(NULL, ",", &next_pch);
+			strcpy_s(szTime, pch);
+			WriteChatf("\arGM %s - seen %s times in this zone, last seen %s\ax", pKeys, szCount, szTime);
+		}
+		pKeys += strlen(pKeys) + 1;
+	}
+	if (!count) WriteChatf("\arNo GM's seen in this zone!\ax");
+	return;
+}
+
+void HistoryGMs() {
+	HistoryGMAllServers();
+	HistoryGMThisServer();
+	HistoryGMThisZone();
+	return;
+}
+
+void AddGMToList(int GMID, PCHAR GMName) {
+	if (!GMAlreadyInList(GMID)) {
+		for (int x = 0; x < GMLIMIT; x++)
+			if (GMSpawns[x].ID == 0) {
+				GMSpawns[x].ID = GMID;
+				strcpy_s(GMSpawns[x].Name, GMName);
+				GMSpawns[x].Timer = GetTickCount64();
+				TrackGMs(GMName);
+				break;
+			}
+		WriteChatf("\arGMCHECK: GM in the zone: %s (%d)\ax", GMName, GMID);
+		bGMInTheZone = true;
+	}
+	return;
+}
+
+void RemoveGMFromList(int GMID) {
+	if (!GMAlreadyInList(GMID)) return;
+	for (int x = 0; x < GMLIMIT; x++)
+		if (GMSpawns[x].ID == GMID) {
+			ULONGLONG c, h, m, s, t;
+			c = GetTickCount64();
+			t = (c - GMSpawns[x].Timer) / 1000;
+			h = m = s = 0;
+			if (t > 3600) h = (t / 3600);
+			t = t - (h * 3600);
+			if (t > 60) m = (t / 60);
+			t = t - (m * 60);
+			if (t < 0) t = 0;
+			s = t;
+			WriteChatf("\arGMCHECK: GM has left the zone: %s (%d) after %dh:%dm:%ds\ax", GMSpawns[x].Name, GMSpawns[x].ID, h, m, s);
+			GMSpawns[x].ID = 0;
+			strcpy_s(GMSpawns[x].Name, "\0");
+			GMSpawns[x].Timer = 0;
+		}
+	if (NumGMOnList())
+		bGMInTheZone = true;
+	else
+		bGMInTheZone = false;
+	return;
+}
+
 bool GMCheck()
 {
 	return !GMNames.empty() ? true : false;
@@ -957,6 +1099,7 @@ PLUGIN_API VOID OnAddSpawn(PlayerClient* pSpawn)
 		if (!strlen(pSpawn->DisplayedName))
 			return;
 
+		AddGMToList(pSpawn->SpawnID, pSpawn->DisplayedName);
 		GMNames.push_back(pSpawn->DisplayedName);
 		strcpy_s(szLastGMName, pSpawn->DisplayedName);
 		strcpy_s(szLastGMTime, DisplayTime());
