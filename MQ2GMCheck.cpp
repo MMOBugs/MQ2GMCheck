@@ -586,6 +586,45 @@ void GMQuiet(char* szLine)
 	WriteChatf("%s\amGM alert and reminder sounds %s%s\am.", PluginMsg, bGMQuiet ? "temporarily " : "", bGMQuiet ? "\arDISABLED" : "\agENABLED");
 }
 
+void TrackGMs(char* GMName) {
+	char szSection[MAX_STRING] = { 0 };
+	char szTemp[MAX_STRING] = { 0 };
+	int iCount = 0;
+	char szLookup[MAX_STRING] = { 0 };
+	char szTime[MAX_STRING] = { 0 };
+	errno_t err;
+
+	time_t rawtime;
+	struct tm timeinfo = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	time(&rawtime);
+	err = localtime_s(&timeinfo, &rawtime);
+	//strncpy(szTime,asctime(timeinfo),24);
+	err = asctime_s(szTime, MAX_STRING, &timeinfo);
+
+	// Store total GM count regardless of server
+	strcpy_s(szSection, "GM");
+	sprintf_s(szLookup, "%s", GMName);
+	iCount = GetPrivateProfileInt(szSection, szLookup, 0, INIFileName) + 1;
+	sprintf_s(szTemp, "%d,%s,%s", iCount, GetServerShortName(), szTime);
+	WritePrivateProfileString(szSection, szLookup, szTemp, INIFileName);
+
+	// Store GM count by Server
+	sprintf_s(szSection, "%s", GetServerShortName());
+	sprintf_s(szLookup, "%s", GMName);
+	iCount = GetPrivateProfileInt(szSection, szLookup, 0, INIFileName) + 1;
+	sprintf_s(szTemp, "%d,%s", iCount, szTime);
+	WritePrivateProfileString(szSection, szLookup, szTemp, INIFileName);
+
+	// Store GM count by Server-Zone
+	sprintf_s(szSection, "%s-%s", GetServerShortName(), pZoneInfo->LongName);
+	sprintf_s(szLookup, "%s", GMName);
+	iCount = GetPrivateProfileInt(szSection, szLookup, 0, INIFileName) + 1;
+	sprintf_s(szTemp, "%d,%s", iCount, szTime);
+	WritePrivateProfileString(szSection, szLookup, szTemp, INIFileName);
+
+	return;
+}
+
 void GMTest(char* szLine)
 {
 	char szArg[MAX_STRING], szTmp[MAX_STRING] = { 0 };
@@ -887,45 +926,6 @@ int countchars(char* inputString, char* searchchar) {
 		return count;
 	}
 	return 0;
-}
-
-void TrackGMs(char* GMName) {
-	char szSection[MAX_STRING] = { 0 };
-	char szTemp[MAX_STRING] = { 0 };
-	int iCount = 0;
-	char szLookup[MAX_STRING] = { 0 };
-	char szTime[MAX_STRING] = { 0 };
-	errno_t err;
-
-	time_t rawtime;
-	struct tm timeinfo = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-	time(&rawtime);
-	err = localtime_s(&timeinfo, &rawtime);
-	//strncpy(szTime,asctime(timeinfo),24);
-	err = asctime_s(szTime, MAX_STRING, &timeinfo);
-
-	// Store total GM count regardless of server
-	strcpy_s(szSection, "GM");
-	sprintf_s(szLookup, "%s", GMName);
-	iCount = GetPrivateProfileInt(szSection, szLookup, 0, INIFileName) + 1;
-	sprintf_s(szTemp, "%d,%s,%s", iCount, GetServerShortName(), szTime);
-	WritePrivateProfileString(szSection, szLookup, szTemp, INIFileName);
-
-	// Store GM count by Server
-	sprintf_s(szSection, "%s", GetServerShortName());
-	sprintf_s(szLookup, "%s", GMName);
-	iCount = GetPrivateProfileInt(szSection, szLookup, 0, INIFileName) + 1;
-	sprintf_s(szTemp, "%d,%s", iCount, szTime);
-	WritePrivateProfileString(szSection, szLookup, szTemp, INIFileName);
-
-	// Store GM count by Server-Zone
-	sprintf_s(szSection, "%s-%s", GetServerShortName(), pZoneInfo->LongName);
-	sprintf_s(szLookup, "%s", GMName);
-	iCount = GetPrivateProfileInt(szSection, szLookup, 0, INIFileName) + 1;
-	sprintf_s(szTemp, "%d,%s", iCount, szTime);
-	WritePrivateProfileString(szSection, szLookup, szTemp, INIFileName);
-
-	return;
 }
 
 void HistoryGMs(HistoryType histValue) {
