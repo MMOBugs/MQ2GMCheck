@@ -64,6 +64,45 @@ int countchars(char* inputString, char* searchchar) {
 	return 0;
 }
 
+void TrackGMs(char* GMName) {
+	char szSection[MAX_STRING] = { 0 };
+	char szTemp[MAX_STRING] = { 0 };
+	int iCount = 0;
+	char szLookup[MAX_STRING] = { 0 };
+	char szTime[MAX_STRING] = { 0 };
+	errno_t err;
+
+	time_t rawtime;
+	struct tm timeinfo = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	time(&rawtime);
+	err = localtime_s(&timeinfo, &rawtime);
+	//strncpy(szTime,asctime(timeinfo),24);
+	err = asctime_s(szTime, MAX_STRING, &timeinfo);
+
+	// Store total GM count regardless of server
+	strcpy_s(szSection, "GM");
+	sprintf_s(szLookup, "%s", GMName);
+	iCount = GetPrivateProfileInt(szSection, szLookup, 0, INIFileName) + 1;
+	sprintf_s(szTemp, "%d,%s,%s", iCount, GetServerShortName(), szTime);
+	WritePrivateProfileString(szSection, szLookup, szTemp, INIFileName);
+
+	// Store GM count by Server
+	sprintf_s(szSection, "%s", GetServerShortName());
+	sprintf_s(szLookup, "%s", GMName);
+	iCount = GetPrivateProfileInt(szSection, szLookup, 0, INIFileName) + 1;
+	sprintf_s(szTemp, "%d,%s", iCount, szTime);
+	WritePrivateProfileString(szSection, szLookup, szTemp, INIFileName);
+
+	// Store GM count by Server-Zone
+	sprintf_s(szSection, "%s-%s", GetServerShortName(), pZoneInfo->LongName);
+	sprintf_s(szLookup, "%s", GMName);
+	iCount = GetPrivateProfileInt(szSection, szLookup, 0, INIFileName) + 1;
+	sprintf_s(szTemp, "%d,%s", iCount, szTime);
+	WritePrivateProfileString(szSection, szLookup, szTemp, INIFileName);
+
+	return;
+}
+
 void HistoryGMs(HistoryType histValue) {
 	/*
 		List of GMs.
@@ -170,48 +209,6 @@ void HistoryGMs(HistoryType histValue) {
 		WriteChatf("%s]ayWe were unable to find any history for \ag%s\ax section", PluginMsg, histValue == eHistory_All ? "All" : histValue == eHistory_Server ? "Server" : "Zone");
 	}
 
-	return;
-}
-
-void AddGMToList(int GMID, PCHAR GMName) {
-	if (!GMAlreadyInList(GMID)) {
-		for (int x = 0; x < GMLIMIT; x++)
-			if (GMSpawns[x].ID == 0) {
-				GMSpawns[x].ID = GMID;
-				strcpy_s(GMSpawns[x].Name, GMName);
-				GMSpawns[x].Timer = GetTickCount64();
-				TrackGMs(GMName);
-				break;
-			}
-		WriteChatf("\arGMCHECK: GM in the zone: %s (%d)\ax", GMName, GMID);
-		bGMInTheZone = true;
-	}
-	return;
-}
-
-void RemoveGMFromList(int GMID) {
-	if (!GMAlreadyInList(GMID)) return;
-	for (int x = 0; x < GMLIMIT; x++)
-		if (GMSpawns[x].ID == GMID) {
-			ULONGLONG c, h, m, s, t;
-			c = GetTickCount64();
-			t = (c - GMSpawns[x].Timer) / 1000;
-			h = m = s = 0;
-			if (t > 3600) h = (t / 3600);
-			t = t - (h * 3600);
-			if (t > 60) m = (t / 60);
-			t = t - (m * 60);
-			if (t < 0) t = 0;
-			s = t;
-			WriteChatf("\arGMCHECK: GM has left the zone: %s (%d) after %dh:%dm:%ds\ax", GMSpawns[x].Name, GMSpawns[x].ID, h, m, s);
-			GMSpawns[x].ID = 0;
-			strcpy_s(GMSpawns[x].Name, "\0");
-			GMSpawns[x].Timer = 0;
-		}
-	if (NumGMOnList())
-		bGMInTheZone = true;
-	else
-		bGMInTheZone = false;
 	return;
 }
 
@@ -1127,7 +1124,7 @@ PLUGIN_API VOID OnAddSpawn(PlayerClient* pSpawn)
 		if (!strlen(pSpawn->DisplayedName))
 			return;
 
-		AddGMToList(pSpawn->SpawnID, pSpawn->DisplayedName);
+		TrackGMs(pSpawn->DisplayedName);
 		GMNames.push_back(pSpawn->DisplayedName);
 		strcpy_s(szLastGMName, pSpawn->DisplayedName);
 		strcpy_s(szLastGMTime, DisplayTime());
