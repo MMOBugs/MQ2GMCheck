@@ -22,7 +22,7 @@ PLUGIN_VERSION(4.00);
 #pragma comment(lib,"winmm.lib")
 
 namespace GMCheckSpace {
-	const char PluginMsg[32] = "\ay[MQ2GMCheck] ";
+	const char PluginMsg[32] = "\ay[\aoMQ2GMCheck\ax] ";
 
 	char szEnterSound[MAX_STRING] = { 0 }, szLeaveSound[MAX_STRING] = { 0 }, szRemindSound[MAX_STRING] = { 0 },
 		szLastGMName[MAX_STRING] = { 0 }, szLastGMTime[MAX_STRING] = { 0 }, szLastGMDate[MAX_STRING] = { 0 },
@@ -782,19 +782,6 @@ void UpdateAlerts()
 
 		GMNames.erase(GMNames.begin() + index);
 	}
-}
-
-int countchars(char* inputString, char* searchchar) {
-	if (searchchar[0]) {
-		int count = 0;
-		const char* pLast = inputString - 1;
-
-		while (pLast = strchr(&pLast[1], searchchar[0]))
-			count++;
-
-		return count;
-	}
-	return 0;
 }
 
 void HistoryGMs(HistoryType histValue) {
