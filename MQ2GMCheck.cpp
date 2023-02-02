@@ -366,7 +366,6 @@ void ReadSettings()
 			WriteChatf("%s\atWARNING - GM 'remind' sound file not found: \am%s", PluginMsg, szRemindSound);
 	}
 
-	//Only read, never written?
 	GetPrivateProfileString("Settings", "GMEnterCmd", "", szGMEnterCmd, MAX_STRING, INIFileName);
 	GetPrivateProfileString("Settings", "GMEnterCmdIf", "", szGMEnterCmdIf, MAX_STRING, INIFileName);
 	GetPrivateProfileString("Settings", "GMLeaveCmd", "", szGMLeaveCmd, MAX_STRING, INIFileName);
