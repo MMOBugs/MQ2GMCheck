@@ -21,39 +21,53 @@ PLUGIN_VERSION(5.00);
 
 #pragma comment(lib,"winmm.lib")
 
-namespace GMCheckSpace {
-	const char PluginMsg[32] = "\ay[\aoMQ2GMCheck\ax] ";
+const char PluginMsg[] = "\ay[\aoMQ2GMCheck\ax] ";
 
-	char szEnterSound[MAX_STRING] = { 0 }, szLeaveSound[MAX_STRING] = { 0 }, szRemindSound[MAX_STRING] = { 0 },
-		szLastGMName[MAX_STRING] = { 0 }, szLastGMTime[MAX_STRING] = { 0 }, szLastGMDate[MAX_STRING] = { 0 },
-		szLastGMZone[MAX_STRING] = { 0 }, szGMEnterCmd[MAX_STRING] = { 0 }, szGMEnterCmdIf[MAX_STRING] = { 0 },
-		szGMLeaveCmd[MAX_STRING] = { 0 }, szGMLeaveCmdIf[MAX_STRING] = { 0 };
+char szEnterSound[MAX_STRING] = { 0 };
+char szLeaveSound[MAX_STRING] = { 0 };
+char szRemindSound[MAX_STRING] = { 0 };
+char szLastGMName[MAX_STRING] = { 0 };
+char szLastGMTime[MAX_STRING] = { 0 };
+char szLastGMDate[MAX_STRING] = { 0 };
+char szLastGMZone[MAX_STRING] = { 0 };
+char szGMEnterCmd[MAX_STRING] = { 0 };
+char szGMEnterCmdIf[MAX_STRING] = { 0 };
+char szGMLeaveCmd[MAX_STRING] = { 0 };
+char szGMLeaveCmdIf[MAX_STRING] = { 0 };
 
-	uint32_t  Reminder_Interval = 0,
-		bmMQ2GMCheck = 0;
+uint32_t  Reminder_Interval = 0;
+uint32_t bmMQ2GMCheck = 0;
 
-	uint64_t Check_PulseCount = 0, Update_PulseCount = 0, StopSoundTimer = 0;
+uint64_t Check_PulseCount = 0;
+uint64_t Update_PulseCount = 0;
+uint64_t StopSoundTimer = 0;
 
-	DWORD dwVolume, NewVol;
+DWORD dwVolume;
+DWORD NewVol;
 
-	bool bGMAlert = false, bGMCheck = true, bGMQuiet = false, bGMSound = true, bGMBeep = false,
-		bGMPopup = false, bGMCorpse = false, bGMCmdActive = false, bVolSet = false,
-		bGMChatAlert = true;
+bool bGMAlert = false;
+bool bGMCheck = true;
+bool bGMQuiet = false;
+bool bGMSound = true;
+bool bGMBeep = false;
+bool bGMPopup = false;
+bool bGMCorpse = false;
+bool bGMCmdActive = false;
+bool bVolSet = false;
+bool bGMChatAlert = true;
 
-	std::vector<std::string> GMNames;
+std::vector<std::string> GMNames;
 
-	enum HistoryType {
-		eHistory_Zone,
-		eHistory_Server,
-		eHistory_All
-	};
-}
+enum HistoryType {
+	eHistory_Zone,
+	eHistory_Server,
+	eHistory_All
+};
 
-using namespace GMCheckSpace;
 
 bool GMCheck()
 {
-	return !GMNames.empty() ? true : false;
+	return !GMNames.empty();
 }
 
 int MCEval(const char* zBuffer)
@@ -143,7 +157,8 @@ public:
 		case GMCheckMembers::Names:
 		{
 			char szTmp[MAX_STRING] = { 0 };
-			for (std::string GMName : GMNames) {
+			for (const std::string& GMName : GMNames)
+			{
 				if (szTmp[0])
 					strcat_s(DataTypeTemp, ", ");
 
@@ -478,7 +493,8 @@ void PlayGMSound(char* pFileName)
 	}
 }
 
-void ToggleBool(char* szLine, bool* theOption, char* msg) {
+void ToggleBool(char* szLine, bool* theOption, char* msg)
+{
 	char szArg[MAX_STRING] = { 0 };
 	GetArg(szArg, szLine, 1);
 
@@ -566,35 +582,32 @@ void GMQuiet(char* szLine)
 	WriteChatf("%s\amGM alert and reminder sounds %s%s\am.", PluginMsg, bGMQuiet ? "temporarily " : "", bGMQuiet ? "\arDISABLED" : "\agENABLED");
 }
 
-void TrackGMs(char* GMName) {
+void TrackGMs(const char* GMName)
+{
 	char szSection[MAX_STRING] = { 0 };
 	char szTemp[MAX_STRING] = { 0 };
 	int iCount = 0;
-	char szLookup[MAX_STRING] = { 0 };
 	char szTime[MAX_STRING] = { 0 };
 
 	sprintf_s(szTime, "Date: %s Time: %s", DisplayDate(), DisplayTime());
 
 	// Store total GM count regardless of server
 	strcpy_s(szSection, "GM");
-	sprintf_s(szLookup, "%s", GMName);
-	iCount = GetPrivateProfileInt(szSection, szLookup, 0, INIFileName) + 1;
+	iCount = GetPrivateProfileInt(szSection, GMName, 0, INIFileName) + 1;
 	sprintf_s(szTemp, "%d,%s,%s", iCount, GetServerShortName(), szTime);
-	WritePrivateProfileString(szSection, szLookup, szTemp, INIFileName);
+	WritePrivateProfileString(szSection, GMName, szTemp, INIFileName);
 
 	// Store GM count by Server
 	sprintf_s(szSection, "%s", GetServerShortName());
-	sprintf_s(szLookup, "%s", GMName);
-	iCount = GetPrivateProfileInt(szSection, szLookup, 0, INIFileName) + 1;
+	iCount = GetPrivateProfileInt(szSection, GMName, 0, INIFileName) + 1;
 	sprintf_s(szTemp, "%d,%s", iCount, szTime);
-	WritePrivateProfileString(szSection, szLookup, szTemp, INIFileName);
+	WritePrivateProfileString(szSection, GMName, szTemp, INIFileName);
 
 	// Store GM count by Server-Zone
 	sprintf_s(szSection, "%s-%s", GetServerShortName(), pZoneInfo->LongName);
-	sprintf_s(szLookup, "%s", GMName);
-	iCount = GetPrivateProfileInt(szSection, szLookup, 0, INIFileName) + 1;
+	iCount = GetPrivateProfileInt(szSection, GMName, 0, INIFileName) + 1;
 	sprintf_s(szTemp, "%d,%s", iCount, szTime);
-	WritePrivateProfileString(szSection, szLookup, szTemp, INIFileName);
+	WritePrivateProfileString(szSection, GMName, szTemp, INIFileName);
 
 	return;
 }
@@ -736,30 +749,35 @@ void UpdateAlerts()
 
 	Update_PulseCount = MQGetTickCount64();
 	uint32_t index = 0;
-	for (std::string GMName : GMNames)
+	for (const std::string& GMName : GMNames)
 	{
 		PlayerClient* pSpawn = GetSpawnByName(GMName.c_str());
-		if (pSpawn && pSpawn->GM) {
+		if (pSpawn && pSpawn->GM)
+		{
 			index++;
 			continue;
 		}
 
-		if (bGMChatAlert) {
+		if (bGMChatAlert)
+		{
 			char szMsg[MAX_STRING] = { 0 };
 			sprintf_s(szMsg, "\agGM %s \ayhas left the zone at \ag%s", GMName.c_str(), DisplayTime());
 			WriteChatf("%s%s", PluginMsg, szMsg);
 		}
 
-		if (GMNames.empty() && bGMCmdActive) {
+		if (GMNames.empty() && bGMCmdActive)
+		{
 			char szTmp[MAX_STRING] = { 0 };
 			strcpy_s(szTmp, szGMLeaveCmdIf);
-			if (MCEval(szTmp) && szGMLeaveCmd[0] && szGMLeaveCmd[0] == '/') {
-				DoCommand((GetCharInfo() && GetCharInfo()->pSpawn) ? GetCharInfo()->pSpawn : NULL, szGMLeaveCmd);
+			if (MCEval(szTmp) && szGMLeaveCmd[0] && szGMLeaveCmd[0] == '/')
+			{
+				EzCommand(szGMLeaveCmd);
 				bGMCmdActive = false;
 			}
 		}
 
-		if (!bGMQuiet && bGMSound) {
+		if (!bGMQuiet && bGMSound)
+		{
 			char szTmp[MAX_STRING] = { 0 };
 			GetPrivateProfileString(GMName.c_str(), "LeaveSound", "", szTmp, MAX_STRING, INIFileName);
 			if (szTmp[0] && _FileExists(szTmp))
@@ -768,12 +786,14 @@ void UpdateAlerts()
 				PlayGMSound(szLeaveSound);
 		}
 
-		if (!bGMQuiet && bGMBeep) {
+		if (!bGMQuiet && bGMBeep)
+		{
 			PlaySound(NULL, NULL, SND_NODEFAULT);
 			PlaySound("SystemDefault", NULL, SND_ALIAS | SND_ASYNC | SND_NODEFAULT);
 		}
 
-		if (bGMPopup) {
+		if (bGMPopup)
+		{
 			char szPopup[MAX_STRING];
 			sprintf_s(szPopup, "GM %s has left the zone at %s", GMName.c_str(), DisplayTime());
 			DisplayOverlayText(szPopup, CONCOLOR_GREEN, 100, 500, 500, 3000);
@@ -783,7 +803,8 @@ void UpdateAlerts()
 	}
 }
 
-void HistoryGMs(HistoryType histValue) {
+void HistoryGMs(HistoryType histValue)
+{
 	/* TODO: Clean up this format, left it for backwards compatibility
 		Format recommended by Knightly
 		[GM]
@@ -814,7 +835,8 @@ void HistoryGMs(HistoryType histValue) {
 	*/
 	std::vector<std::string> vKeys;
 	char szSection[MAX_STRING] = { 0 };
-	switch (histValue) {
+	switch (histValue)
+	{
 	case eHistory_All:
 		strcpy_s(szSection, "GM");
 		vKeys = GetPrivateProfileKeys(szSection, INIFileName);
@@ -836,7 +858,8 @@ void HistoryGMs(HistoryType histValue) {
 	}
 
 	std::vector<std::string> Outputs;
-	for (std::string GMName : vKeys) {//cycle through all the entries
+	for (const std::string& GMName : vKeys)//cycle through all the entries
+	{
 		if (GMName.empty())
 			continue;
 
@@ -851,7 +874,8 @@ void HistoryGMs(HistoryType histValue) {
 		char LastSeenDate[MAX_STRING] = { 0 };
 		char ServerName[MAX_STRING] = { 0 };
 		//All History also has the server.
-		if (histValue == eHistory_All) {
+		if (histValue == eHistory_All)
+		{
 			//2: ServerName
 			GetArg(ServerName, szTemp, 2, 0, 0, 0, ',', 0);
 
@@ -863,7 +887,8 @@ void HistoryGMs(HistoryType histValue) {
 			GetArg(LastSeenDate, szTemp, 2, 0, 0, 0, ',', 0);
 		}
 
-		switch (histValue) {
+		switch (histValue)
+		{
 		case eHistory_All:
 			sprintf_s(szTemp, "%sGM \ap%s\ax - seen \a-t%s\ax times on server \a-t%s\ax, last seen \a-t%s", PluginMsg, GMName.c_str(), SeenCount, ServerName, LastSeenDate);
 			break;
@@ -882,9 +907,11 @@ void HistoryGMs(HistoryType histValue) {
 	}
 
 	// What GM's have been seen on all servers?
-	if (!Outputs.empty()) {
+	if (!Outputs.empty())
+	{
 		WriteChatf("\n%sHistory of GM's in \ag%s\ax section", PluginMsg, (histValue == eHistory_All ? "All" : histValue == eHistory_Server ? "Server" : "Zone"));
-		for (std::string GMInfo : Outputs) {
+		for (const std::string& GMInfo : Outputs)
+		{
 			WriteChatf("%s", GMInfo.c_str());//already has PluginMsg input when pushed into the vector.
 		}
 	}
@@ -895,7 +922,8 @@ void HistoryGMs(HistoryType histValue) {
 	return;
 }
 
-void GMHelp() {
+void GMHelp()
+{
 	WriteChatf("\n%s\ayMQ2GMCheck Commands:\n", PluginMsg);
 	WriteChatf("%s\ay/gmcheck [status] \ax: \agShow current settings/status.", PluginMsg);
 	WriteChatf("%s\ay/gmcheck quiet [off|on]\ax: \agToggle all GM alert & reminder sounds, or force on/off.", PluginMsg);
@@ -917,7 +945,8 @@ void GMHelp() {
 	WriteChatf("%s\ay/gmcheck help \ax: \agThis help.\n", PluginMsg);
 }
 
-void GMCheckCmd(PlayerClient* pChar, char* szLine) {
+void GMCheckCmd(PlayerClient* pChar, char* szLine)
+{
 	char szArg1[MAX_STRING], szArg2[MAX_STRING];
 	GetArg(szArg1, szLine, 1);
 	if (!_stricmp(szArg1, "on"))
@@ -1009,17 +1038,13 @@ void GMCheckCmd(PlayerClient* pChar, char* szLine) {
 
 void SetupVolumesFromINI()
 {
-	char szTemp[MAX_STRING] = { 0 };
-	DWORD i = -1;
-	float x = 0;
-
 	//LeftVolume
-	i = (DWORD)GetPrivateProfileInt("Settings", "LeftVolume", 50, INIFileName);
+	DWORD i = (DWORD)GetPrivateProfileInt("Settings", "LeftVolume", 50, INIFileName);
 	if (i > 100 || i < 0)
 		i = 50;
 
 	WritePrivateProfileInt("Settings", "LeftVolume", i, INIFileName);
-	x = (float)65535.0 * ((float)i / (float)100.0);
+	float x = (float)65535.0 * ((float)i / (float)100.0);
 	NewVol = (DWORD)x;
 
 	//RightVolume
@@ -1091,8 +1116,10 @@ PLUGIN_API VOID OnPulse()
 			if (bGMAlert = GMCheck() && !bGMQuiet && bGMCheck)
 			{
 				char szNames[MAX_STRING] = { 0 };
-				for (const std::string GMName : GMNames) {
-					if (strlen(szNames) > 500) {
+				for (const std::string& GMName : GMNames)
+				{
+					if (strlen(szNames) > 500)
+					{
 						strcat_s(szNames, " ...");
 						break;
 					}
@@ -1118,7 +1145,7 @@ PLUGIN_API VOID OnPulse()
 
 PLUGIN_API VOID OnAddSpawn(PlayerClient* pSpawn)
 {
-	if (bGMCheck && pSpawn && pSpawn->GM && (bGMCorpse ? pSpawn->Type == SPAWN_CORPSE : true))
+	if (pLocalPC && bGMCheck && pSpawn && pSpawn->GM && (bGMCorpse || pSpawn->Type == SPAWN_CORPSE))
 	{
 		if (!strlen(pSpawn->DisplayedName))
 			return;
@@ -1130,13 +1157,10 @@ PLUGIN_API VOID OnAddSpawn(PlayerClient* pSpawn)
 		strcpy_s(szLastGMDate, DisplayDate());
 		strcpy_s(szLastGMZone, "UNKNOWN");
 
-		if (pLocalPC)
+		int zoneid = (pLocalPC->zoneId & 0x7FFF);
+		if (zoneid <= MAX_ZONES)
 		{
-			int zoneid = (pLocalPC->zoneId & 0x7FFF);
-			if (zoneid <= MAX_ZONES)
-			{
-				strcpy_s(szLastGMZone, pWorldData->ZoneArray[zoneid]->LongName);
-			}
+			strcpy_s(szLastGMZone, pWorldData->ZoneArray[zoneid]->LongName);
 		}
 
 		char szMsg[MAX_STRING] = { 0 };
@@ -1211,7 +1235,7 @@ PLUGIN_API VOID OnRemoveSpawn(PlayerClient* pSpawn)
 			strcpy_s(szTmp, szGMLeaveCmdIf);
 			if (MCEval(szTmp) && szGMLeaveCmd[0] && szGMLeaveCmd[0] == '/')
 			{
-				DoCommand((GetCharInfo() && GetCharInfo()->pSpawn) ? GetCharInfo()->pSpawn : NULL, szGMLeaveCmd);
+				EzCommand(szGMLeaveCmd);
 				bGMCmdActive = false;
 			}
 		}
