@@ -18,6 +18,7 @@
 #include <mq/Plugin.h>
 #include <vector>
 #include <mmsystem.h>
+#include <mq/imgui/ImGuiUtils.h>
 
 PreSetup("MQ2GMCheck");
 PLUGIN_VERSION(5.20);
@@ -40,7 +41,7 @@ bool bVolSet = false;
 
 std::vector<std::string> GMNames;
 
-enum FlagOptions { Off, On, Toggle };
+enum FlagOptions { Off, On, Toggle};
 
 class BooleanOption
 {
@@ -708,13 +709,13 @@ enum class GMStatuses
 	Reminder
 };
 
-void DoGMAlert(const char* gm_name, GMStatuses status, bool test = false)
+void DoGMAlert(const char* gm_name, GMStatuses status, bool test=false)
 {
 	char szMsg[MAX_STRING] = { 0 };
 	std::filesystem::path sound_to_play;
 	int overlay_color = CONCOLOR_RED;
 	std::string beep_sound = "SystemDefault";
-	switch (status)
+	switch(status)
 	{
 	case GMStatuses::Enter:
 		sprintf_s(szMsg, "\arGM %s \ayhas entered the zone at \ar%s", gm_name, DisplayDT("%I:%M:%S %p"));
@@ -746,9 +747,9 @@ void DoGMAlert(const char* gm_name, GMStatuses status, bool test = false)
 		{
 			const int lResult = MCEval(szTmpIf);
 			WriteChatf("%s\at(If GM %s zone): GMEnterCmdIf evaluates to %s\at.  Plugin would %s \atGMEnterCmd: \am%s",
-				PluginMsg, status == GMStatuses::Enter ? "entered" : "left",
-				lResult ? "\agTRUE" : "\arFALSE", lResult ? (szTmpCmd[0] ? (szTmpCmd[0] == '/' ? "\agEXECUTE" : "\arNOT EXECUTE") : "\arNOT EXECUTE") : "\arNOT EXECUTE",
-				szTmpCmd[0] ? (szTmpCmd[0] == '/' ? szTmpCmd : "<IGNORED>") : "<NONE>");
+			PluginMsg, status == GMStatuses::Enter ? "entered" : "left",
+			lResult ? "\agTRUE" : "\arFALSE", lResult ? (szTmpCmd[0] ? (szTmpCmd[0] == '/' ? "\agEXECUTE" : "\arNOT EXECUTE") : "\arNOT EXECUTE") : "\arNOT EXECUTE",
+			szTmpCmd[0] ? (szTmpCmd[0] == '/' ? szTmpCmd : "<IGNORED>") : "<NONE>");
 		}
 		else if (szTmpCmd[0] == '/' && MCEval(szTmpIf))
 		{
@@ -960,7 +961,7 @@ void GMHelp()
 	WriteChatf("%s\ay/gmcheck sound [off|on]\ax: \agToggle playing sounds for GM alerts, or force on/off.", PluginMsg);
 	WriteChatf("%s\ay/gmcheck beep [off|on]\ax: \agToggle playing beeps for GM alerts, or force on/off.", PluginMsg);
 	WriteChatf("%s\ay/gmcheck popup [off|on]\ax: \agToggle showing popup messages for GM alerts, or force on/off.", PluginMsg);
-	WriteChatf("%s\ay/gmcheck chat [off|on]\ax: \agToggle GM alert being output to the MQ2 chat window, or force on/off.", PluginMsg);
+	WriteChatf("%s\ay/gmcheck chat [off|on]\ax: \agToggle GM alert being output to the MQ chat window, or force on/off.", PluginMsg);
 	WriteChatf("%s\ay/gmcheck corpse [off|on]\ax: \agToggle GM alert being ignored if the spawn is a corpse, or force on/off.", PluginMsg);
 	WriteChatf("%s\ay/gmcheck rem \ax: \agChange alert reminder interval, in seconds.  e.g.: /gmcheck rem 15 (0 to disable)", PluginMsg);
 	WriteChatf("%s\ay/gmcheck load \ax: \agLoad settings from INI file.", PluginMsg);
@@ -1056,8 +1057,7 @@ void GMCheckCmd(PlayerClient* pChar, char* szLine)
 	else if (!_stricmp(szArg1, "All"))
 	{
 		HistoryGMs(eHistory_All);
-	}
-	else
+	} else
 		GMCheckStatus(true);
 }
 
@@ -1093,42 +1093,56 @@ void DrawGMCheckSettingsPanel()
 	{
 		s_settings.m_GMCheckEnabled.Write(GMCheckEnabled ? FlagOptions::On : FlagOptions::Off);
 	}
+	ImGui::SameLine();
+	mq::imgui::HelpMarker("Turn GM alerting on or off");
 
 	bool GMSoundEnabled = s_settings.m_GMSoundEnabled.Read();
 	if (ImGui::Checkbox("Sound Playing Enabled", &GMSoundEnabled))
 	{
 		s_settings.m_GMSoundEnabled.Write(GMSoundEnabled ? FlagOptions::On : FlagOptions::Off);
 	}
+	ImGui::SameLine();
+	mq::imgui::HelpMarker("Toggle playing sounds for GM alerts, be sure to set the GM Enter/Leave/Reminder file names");
 
 	bool GMBeepEnabled = s_settings.m_GMBeepEnabled.Read();
 	if (ImGui::Checkbox("Beep Enabled", &GMBeepEnabled))
 	{
 		s_settings.m_GMBeepEnabled.Write(GMBeepEnabled ? FlagOptions::On : FlagOptions::Off);
 	}
+	ImGui::SameLine();
+	mq::imgui::HelpMarker("Toggle playing beeps for GM alerts");
 
 	bool GMPopupEnabled = s_settings.m_GMPopupEnabled.Read();
 	if (ImGui::Checkbox("Popup Enabled", &GMPopupEnabled))
 	{
 		s_settings.m_GMPopupEnabled.Write(GMPopupEnabled ? FlagOptions::On : FlagOptions::Off);
 	}
+	ImGui::SameLine();
+	mq::imgui::HelpMarker("Toggle showing popup messages for GM alerts");
 
 	bool GMCorpseEnabled = s_settings.m_GMCorpseEnabled.Read();
 	if (ImGui::Checkbox("Include Corpses", &GMCorpseEnabled))
 	{
 		s_settings.m_GMCorpseEnabled.Write(GMCorpseEnabled ? FlagOptions::On : FlagOptions::Off);
 	}
+	ImGui::SameLine();
+	mq::imgui::HelpMarker("Toggle GM alert being ignored if the spawn is a corpse");
 
 	bool GMChatAlertEnabled = s_settings.m_GMChatAlertEnabled.Read();
 	if (ImGui::Checkbox("Alert in MQ Chat", &GMChatAlertEnabled))
 	{
 		s_settings.m_GMChatAlertEnabled.Write(GMChatAlertEnabled ? FlagOptions::On : FlagOptions::Off);
 	}
+	ImGui::SameLine();
+	mq::imgui::HelpMarker("Toggle GM alert being output to the MQ chat window");
 
 	int GMReminderInterval = s_settings.GetReminderInterval();
 	if (ImGui::SliderInt("Reminder Interval", &GMReminderInterval, 0, 600))
 	{
 		s_settings.SetReminderInterval(GMReminderInterval);
 	}
+	ImGui::SameLine();
+	mq::imgui::HelpMarker("Set GM reminder interval, in seconds, 0 to disable reminders");
 
 	int LeftVolume = GetPrivateProfileInt("Settings", "LeftVolume", -1, INIFileName);
 	if (LeftVolume > 100 || LeftVolume < 0)
@@ -1136,11 +1150,14 @@ void DrawGMCheckSettingsPanel()
 		LeftVolume = 50;
 		WritePrivateProfileInt("Settings", "LeftVolume", LeftVolume, INIFileName);
 	}
+
 	if (ImGui::SliderInt("Left Volume", &LeftVolume, 0, 100))
 	{
 		WritePrivateProfileInt("Settings", "LeftVolume", LeftVolume, INIFileName);
 		SetupVolumesFromINI();
 	}
+	ImGui::SameLine();
+	mq::imgui::HelpMarker("Set the volume for alert sounds for the left speaker");
 
 	int RightVolume = GetPrivateProfileInt("Settings", "RightVolume", -1, INIFileName);
 	if (RightVolume > 100 || RightVolume < 0)
@@ -1153,6 +1170,8 @@ void DrawGMCheckSettingsPanel()
 		WritePrivateProfileInt("Settings", "RightVolume", RightVolume, INIFileName);
 		SetupVolumesFromINI();
 	}
+	ImGui::SameLine();
+	mq::imgui::HelpMarker("Set the volume for alert sounds for the right speaker");
 
 	ImGui::NewLine();
 
@@ -1165,6 +1184,8 @@ void DrawGMCheckSettingsPanel()
 		s_settings.Sound_GMEnter = szSoundGMEnter;
 		WritePrivateProfileString("Settings", "EnterSound", szSoundGMEnter, INIFileName);
 	}
+	ImGui::SameLine();
+	mq::imgui::HelpMarker("Set the sound (.wav or .mp3) to play when a GM enters the zone");
 
 	static char szSoundGMLeave[MAX_STRING] = { 0 };
 	strcpy_s(szSoundGMLeave, MAX_STRING, s_settings.Sound_GMLeave.string().c_str());
@@ -1175,6 +1196,8 @@ void DrawGMCheckSettingsPanel()
 		s_settings.Sound_GMLeave = szSoundGMLeave;
 		WritePrivateProfileString("Settings", "LeaveSound", szSoundGMLeave, INIFileName);
 	}
+	ImGui::SameLine();
+	mq::imgui::HelpMarker("Set the sound (.wav or .mp3) to play when a GM leaves the zone");
 
 	static char szSoundGMRemind[MAX_STRING] = { 0 };
 	strcpy_s(szSoundGMRemind, MAX_STRING, s_settings.Sound_GMRemind.string().c_str());
@@ -1185,6 +1208,8 @@ void DrawGMCheckSettingsPanel()
 		s_settings.Sound_GMRemind = szSoundGMRemind;
 		WritePrivateProfileString("Settings", "RemindSound", szSoundGMRemind, INIFileName);
 	}
+	ImGui::SameLine();
+	mq::imgui::HelpMarker("Set the sound (.wav or .mp3) to play every 'Reminder Interval' when a GM is in zone");
 
 	ImGui::NewLine();
 
@@ -1197,6 +1222,8 @@ void DrawGMCheckSettingsPanel()
 		s_settings.szGMEnterCmd = szGMEnterCmd;
 		WritePrivateProfileString("Settings", "GMEnterCmd", szGMEnterCmd, INIFileName);
 	}
+	ImGui::SameLine();
+	mq::imgui::HelpMarker("Set the command to execute when a GM enters the zone");
 
 	static char szGMEnterCmdIf[MAX_STRING] = { 0 };
 	strcpy_s(szGMEnterCmdIf, s_settings.szGMEnterCmdIf.c_str());
@@ -1207,6 +1234,8 @@ void DrawGMCheckSettingsPanel()
 		s_settings.szGMEnterCmdIf = szGMEnterCmdIf;
 		WritePrivateProfileString("Settings", "GMEnterCmdIf", szGMEnterCmdIf, INIFileName);
 	}
+	ImGui::SameLine();
+	mq::imgui::HelpMarker("Set any conditions to evaluate whether the GM Enter Cmd is executed when a GM enters the zone");
 
 	static char szGMLeaveCmd[MAX_STRING] = { 0 };
 	strcpy_s(szGMLeaveCmd, s_settings.szGMLeaveCmd.c_str());
@@ -1217,6 +1246,8 @@ void DrawGMCheckSettingsPanel()
 		s_settings.szGMLeaveCmd = szGMLeaveCmd;
 		WritePrivateProfileString("Settings", "GMLeaveCmd", szGMLeaveCmd, INIFileName);
 	}
+	ImGui::SameLine();
+	mq::imgui::HelpMarker("Set the command to execute when a GM leaves the zone");
 
 	static char szGMLeaveCmdIf[MAX_STRING] = { 0 };
 	strcpy_s(szGMLeaveCmdIf, s_settings.szGMLeaveCmdIf.c_str());
@@ -1227,6 +1258,8 @@ void DrawGMCheckSettingsPanel()
 		s_settings.szGMLeaveCmdIf = szGMLeaveCmdIf;
 		WritePrivateProfileString("Settings", "GMLeaveCmdIf", szGMLeaveCmdIf, INIFileName);
 	}
+	ImGui::SameLine();
+	mq::imgui::HelpMarker("Set any conditions to evaluate whether the GM Leave Cmd is executed when a GM leaves the zone");
 
 	ImGui::NewLine();
 	ImGui::Separator();
@@ -1235,12 +1268,16 @@ void DrawGMCheckSettingsPanel()
 	{
 		s_settings.Load();
 	}
+	ImGui::SameLine();
+	mq::imgui::HelpMarker("Reloads all settings from the ini file");
 
 	ImGui::SameLine();
 	if (ImGui::Button("Reset Settings"))
 	{
 		s_settings.Reset();
 	}
+	ImGui::SameLine();
+	mq::imgui::HelpMarker("Resets all settings to default");
 }
 
 PLUGIN_API void InitializePlugin()
@@ -1312,14 +1349,14 @@ PLUGIN_API void OnPulse()
 			if (!GMNames.empty())
 			{
 				GMNames.erase(std::remove_if(GMNames.begin(), GMNames.end(), [](const std::string& gm_name)
-					{
-						const PlayerClient* pSpawn = GetSpawnByName(gm_name.c_str());
-				if (pSpawn && pSpawn->GM)
-					return false;
+				{
+					const PlayerClient* pSpawn = GetSpawnByName(gm_name.c_str());
+					if (pSpawn && pSpawn->GM)
+						return false;
 
-				DoGMAlert(pSpawn->DisplayedName, GMStatuses::Leave);
-				return true;
-					}), GMNames.end());
+					DoGMAlert(pSpawn->DisplayedName, GMStatuses::Leave);
+					return true;
+				}), GMNames.end());
 			}
 			// Add any GMs that appeared
 			SPAWNINFO* pSpawn = pSpawnList;
@@ -1367,9 +1404,9 @@ PLUGIN_API void OnRemoveSpawn(PlayerClient* pSpawn)
 	{
 		const size_t start_size = GMNames.size();
 		GMNames.erase(std::remove_if(GMNames.begin(), GMNames.end(), [pSpawn](const std::string& i)
-			{
-				return ci_equals(i, pSpawn->DisplayedName);
-			}), GMNames.end());
+		{
+			return ci_equals(i, pSpawn->DisplayedName);
+		}), GMNames.end());
 
 		if (GMNames.size() != start_size)
 			DoGMAlert(pSpawn->DisplayedName, GMStatuses::Leave);
