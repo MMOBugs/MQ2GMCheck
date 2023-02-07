@@ -41,7 +41,7 @@ bool bVolSet = false;
 
 std::vector<std::string> GMNames;
 
-enum FlagOptions { Off, On, Toggle };
+enum FlagOptions { Off, On, Toggle};
 
 class BooleanOption
 {
@@ -709,13 +709,13 @@ enum class GMStatuses
 	Reminder
 };
 
-void DoGMAlert(const char* gm_name, GMStatuses status, bool test = false)
+void DoGMAlert(const char* gm_name, GMStatuses status, bool test=false)
 {
 	char szMsg[MAX_STRING] = { 0 };
 	std::filesystem::path sound_to_play;
 	int overlay_color = CONCOLOR_RED;
 	std::string beep_sound = "SystemDefault";
-	switch (status)
+	switch(status)
 	{
 	case GMStatuses::Enter:
 		sprintf_s(szMsg, "\arGM %s \ayhas entered the zone at \ar%s", gm_name, DisplayDT("%I:%M:%S %p"));
@@ -747,9 +747,9 @@ void DoGMAlert(const char* gm_name, GMStatuses status, bool test = false)
 		{
 			const int lResult = MCEval(szTmpIf);
 			WriteChatf("%s\at(If GM %s zone): GMEnterCmdIf evaluates to %s\at.  Plugin would %s \atGMEnterCmd: \am%s",
-				PluginMsg, status == GMStatuses::Enter ? "entered" : "left",
-				lResult ? "\agTRUE" : "\arFALSE", lResult ? (szTmpCmd[0] ? (szTmpCmd[0] == '/' ? "\agEXECUTE" : "\arNOT EXECUTE") : "\arNOT EXECUTE") : "\arNOT EXECUTE",
-				szTmpCmd[0] ? (szTmpCmd[0] == '/' ? szTmpCmd : "<IGNORED>") : "<NONE>");
+			PluginMsg, status == GMStatuses::Enter ? "entered" : "left",
+			lResult ? "\agTRUE" : "\arFALSE", lResult ? (szTmpCmd[0] ? (szTmpCmd[0] == '/' ? "\agEXECUTE" : "\arNOT EXECUTE") : "\arNOT EXECUTE") : "\arNOT EXECUTE",
+			szTmpCmd[0] ? (szTmpCmd[0] == '/' ? szTmpCmd : "<IGNORED>") : "<NONE>");
 		}
 		else if (szTmpCmd[0] == '/' && MCEval(szTmpIf))
 		{
@@ -1057,8 +1057,7 @@ void GMCheckCmd(PlayerClient* pChar, char* szLine)
 	else if (!_stricmp(szArg1, "All"))
 	{
 		HistoryGMs(eHistory_All);
-	}
-	else
+	} else
 		GMCheckStatus(true);
 }
 
@@ -1158,7 +1157,7 @@ void DrawGMCheckSettingsPanel()
 		SetupVolumesFromINI();
 	}
 	ImGui::SameLine();
-	mq::imgui::HelpMarker("Set the volume for alert sounds");
+	mq::imgui::HelpMarker("Set the volume for alert sounds for the left speaker");
 
 	int RightVolume = GetPrivateProfileInt("Settings", "RightVolume", -1, INIFileName);
 	if (RightVolume > 100 || RightVolume < 0)
@@ -1172,7 +1171,7 @@ void DrawGMCheckSettingsPanel()
 		SetupVolumesFromINI();
 	}
 	ImGui::SameLine();
-	mq::imgui::HelpMarker("Set the volume for alert sounds");
+	mq::imgui::HelpMarker("Set the volume for alert sounds for the right speaker");
 
 	ImGui::NewLine();
 
@@ -1350,14 +1349,14 @@ PLUGIN_API void OnPulse()
 			if (!GMNames.empty())
 			{
 				GMNames.erase(std::remove_if(GMNames.begin(), GMNames.end(), [](const std::string& gm_name)
-					{
-						const PlayerClient* pSpawn = GetSpawnByName(gm_name.c_str());
-				if (pSpawn && pSpawn->GM)
-					return false;
+				{
+					const PlayerClient* pSpawn = GetSpawnByName(gm_name.c_str());
+					if (pSpawn && pSpawn->GM)
+						return false;
 
-				DoGMAlert(pSpawn->DisplayedName, GMStatuses::Leave);
-				return true;
-					}), GMNames.end());
+					DoGMAlert(pSpawn->DisplayedName, GMStatuses::Leave);
+					return true;
+				}), GMNames.end());
 			}
 			// Add any GMs that appeared
 			SPAWNINFO* pSpawn = pSpawnList;
@@ -1405,9 +1404,9 @@ PLUGIN_API void OnRemoveSpawn(PlayerClient* pSpawn)
 	{
 		const size_t start_size = GMNames.size();
 		GMNames.erase(std::remove_if(GMNames.begin(), GMNames.end(), [pSpawn](const std::string& i)
-			{
-				return ci_equals(i, pSpawn->DisplayedName);
-			}), GMNames.end());
+		{
+			return ci_equals(i, pSpawn->DisplayedName);
+		}), GMNames.end());
 
 		if (GMNames.size() != start_size)
 			DoGMAlert(pSpawn->DisplayedName, GMStatuses::Leave);
