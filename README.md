@@ -29,7 +29,6 @@ MQ2GMCheck provides one command with several options:
 <span style="color: blue;">/gmcheck chat [off|on]</span> : <span style="color: green;">Toggles showing gm alerts in the mq2 chat window, or force on/off.</span>  
 <span style="color: blue;">/gmcheck corpse [off|on]</span> : <span style="color: green;">Toggles filtering of alerts for GM corpses, or force on/off.</span>  
 <span style="color: blue;">/gmcheck rem ##</span> : <span style="color: green;">Change alert reminder interval, in seconds (0 to disable).</span>  
-<span style="color: blue;">/gmcheck save</span> : <span style="color: green;">Saves current options to MQ2GMCheck.ini</span>  
 <span style="color: blue;">/gmcheck load</span> : <span style="color: green;">Load settings from MQ2GMCheck.ini</span>  
 <span style="color: blue;">/gmcheck test [enter|leave|remind]</span> : <span style="color: green;">Tests alerts & sounds for the indicated type.</span>  
 <span style="color: blue;">/gmcheck ss [enter|leave|remind] SoundFileName</span> : <span style="color: green;">Set the filename (wav/mp3) to play for indicated alert. Full path if sound file is not in your MQRoot\Resources\Sounds dir.</span>  
