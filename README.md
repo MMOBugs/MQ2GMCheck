@@ -32,10 +32,10 @@ MQ2GMCheck provides one command with several options:
 <span style="color: blue;">/gmcheck load</span> : <span style="color: green;">Load settings from MQ2GMCheck.ini</span>  
 <span style="color: blue;">/gmcheck test [enter|leave|remind]</span> : <span style="color: green;">Tests alerts & sounds for the indicated type.</span>  
 <span style="color: blue;">/gmcheck ss [enter|leave|remind] SoundFileName</span> : <span style="color: green;">Set the filename (wav/mp3) to play for indicated alert. Full path if sound file is not in your MQRoot\Resources\Sounds dir.</span>  
-<span style="color: blue;">/gmcheck Zone</span> : <span style="color: green;">history of GM's in this zone.</span>
-<span style="color: blue;">/gmcheck Server</span> : <span style="color: green;">history of GM's on this server.</span>
-<span style="color: blue;">/gmcheck All</span> : <span style="color: green;">history of GM's on all servers.</span>
-<span style="color: blue;">/gmcheck help</span> : <span style="color: green;">Shows command syntax and help.</span>
+<span style="color: blue;">/gmcheck Zone</span> : <span style="color: green;">history of GM's in this zone.</span><BR>
+<span style="color: blue;">/gmcheck Server</span> : <span style="color: green;">history of GM's on this server.</span><BR>
+<span style="color: blue;">/gmcheck All</span> : <span style="color: green;">history of GM's on all servers.</span><BR>
+<span style="color: blue;">/gmcheck help</span> : <span style="color: green;">Shows command syntax and help.</span><BR>
 
 ### Configuration File
 
