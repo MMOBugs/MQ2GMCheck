@@ -537,7 +537,7 @@ void GMCheckStatus(bool MentionHelp = false)
 		s_settings.m_GMSoundEnabled.Read() ? "\agON" : "\arOFF",
 		s_settings.m_GMBeepEnabled.Read() ? "\agON" : "\arOFF",
 		s_settings.m_GMPopupEnabled.Read() ? "\agON" : "\arOFF",
-		s_settings.m_GMCorpseEnabled.Read() ? "\agIGNORED" : "\arINCLUDED",
+		s_settings.m_GMCorpseEnabled.Read() ? "\agINCLUDED" : "\ayIGNORED",
 		szTemp);
 
 	if (MentionHelp)
