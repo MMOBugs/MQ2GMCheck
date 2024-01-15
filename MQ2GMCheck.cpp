@@ -387,7 +387,7 @@ public:
 
 		case GMCheckMembers::Names:
 		{
-			Dest.Ptr = DataTypeTemp;
+			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = pStringType;
 
 			if (GMNames.empty())
@@ -430,49 +430,49 @@ public:
 
 		case GMCheckMembers::Enter:
 			strcpy_s(DataTypeTemp, s_settings.Sound_GMEnter.string().c_str());
-			Dest.Ptr = DataTypeTemp;
+			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = pStringType;
 			return true;
 
 		case GMCheckMembers::Leave:
 			strcpy_s(DataTypeTemp, s_settings.Sound_GMLeave.string().c_str());
-			Dest.Ptr = DataTypeTemp;
+			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = pStringType;
 			return true;
 
 		case GMCheckMembers::Remind:
 			strcpy_s(DataTypeTemp, s_settings.Sound_GMRemind.string().c_str());
-			Dest.Ptr = DataTypeTemp;
+			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = pStringType;
 			return true;
 
 		case GMCheckMembers::LastGMName:
 			strcpy_s(DataTypeTemp, szLastGMName);
-			Dest.Ptr = DataTypeTemp;
+			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = pStringType;
 			return true;
 
 		case GMCheckMembers::LastGMTime:
 			strcpy_s(DataTypeTemp, szLastGMTime);
-			Dest.Ptr = DataTypeTemp;
+			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = pStringType;
 			return true;
 
 		case GMCheckMembers::LastGMDate:
 			strcpy_s(DataTypeTemp, szLastGMDate);
-			Dest.Ptr = DataTypeTemp;
+			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = pStringType;
 			return true;
 
 		case GMCheckMembers::LastGMZone:
 			strcpy_s(DataTypeTemp, szLastGMZone);
-			Dest.Ptr = DataTypeTemp;
+			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = pStringType;
 			return true;
 
 		case GMCheckMembers::GMEnterCmd:
 			strcpy_s(DataTypeTemp, s_settings.szGMEnterCmd.c_str());
-			Dest.Ptr = DataTypeTemp;
+			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = pStringType;
 			return true;
 
@@ -482,13 +482,13 @@ public:
 			else
 				strcpy_s(DataTypeTemp, "FALSE");
 
-			Dest.Ptr = DataTypeTemp;
+			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = pStringType;
 			return true;
 
 		case GMCheckMembers::GMLeaveCmd:
 			strcpy_s(DataTypeTemp, s_settings.szGMLeaveCmd.c_str());
-			Dest.Ptr = DataTypeTemp;
+			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = pStringType;
 			return true;
 
@@ -498,7 +498,7 @@ public:
 			else
 				strcpy_s(DataTypeTemp, "FALSE");
 
-			Dest.Ptr = DataTypeTemp;
+			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = pStringType;
 			return true;
 		}
