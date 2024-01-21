@@ -133,7 +133,7 @@ public:
 		m_GMCorpseEnabled = BooleanOption(default_GMCorpseEnabled, "GMCorpse", "Alerting for GM corpses is now");
 		m_GMChatAlertEnabled = BooleanOption(default_GMChatAlertEnabled, "GMChat", "Displaying GM detection alerts in MQ chat window is now");
 		m_GMQuietEnabled = BooleanOption(FlagOptions::Off, "", "GM alert and reminder quiet mode is now");
-		m_ExcludeZonesEnabled = BooleanOption(default_ExcludeZonesEnabled, "ExcludeZones", "Excluding zones listed in ExcludedZoneList from GM detection is now");
+		m_ExcludeZonesEnabled = BooleanOption(default_ExcludeZonesEnabled, "ExcludeZones", "Excluding zones listed in ExcludeZoneList from GM detection is now");
 	};
 
 private:
@@ -149,6 +149,7 @@ void Settings::Load()
 	m_GMPopupEnabled.Read();
 	m_GMCorpseEnabled.Read();
 	m_GMChatAlertEnabled.Read();
+	m_ExcludeZonesEnabled.Read();
 	m_GMQuietEnabled.Write(FlagOptions::Off, true);
 	m_ReminderInterval = GetPrivateProfileInt("Settings", "RemInt", default_ReminderInterval, INIFileName);
 	if (m_ReminderInterval < 10 && m_ReminderInterval)
