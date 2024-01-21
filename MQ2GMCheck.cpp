@@ -21,7 +21,7 @@
 #include <mq/imgui/ImGuiUtils.h>
 
 PreSetup("MQ2GMCheck");
-PLUGIN_VERSION(5.20);
+PLUGIN_VERSION(5.30);
 
 constexpr const char* PluginMsg = "\ay[\aoMQ2GMCheck\ax] ";
 
@@ -92,15 +92,18 @@ public:
 	static constexpr inline FlagOptions default_GMPopupEnabled = FlagOptions::Off;
 	static constexpr inline FlagOptions default_GMCorpseEnabled = FlagOptions::Off;
 	static constexpr inline FlagOptions default_GMChatAlertEnabled = FlagOptions::On;
+	static constexpr inline FlagOptions default_ExcludeZonesEnabled = FlagOptions::Off;
 	static constexpr inline int default_ReminderInterval = 30;
+	static constexpr inline char* default_ExcludeZones = "nexus|poknowledge";
 
 	std::string szGMEnterCmd = std::string();
 	std::string szGMEnterCmdIf = std::string();
 	std::string szGMLeaveCmd = std::string();
 	std::string szGMLeaveCmdIf = std::string();
-	std::filesystem::path Sound_GMEnter = std::filesystem::path(gPathResources) / "Sounds/gmenter.mp3";
-	std::filesystem::path Sound_GMLeave = std::filesystem::path(gPathResources) / "Sounds/gmleave.mp3";
-	std::filesystem::path Sound_GMRemind = std::filesystem::path(gPathResources) / "Sounds/gmremind.mp3";
+	std::string szExcludeZones = std::string();
+	std::filesystem::path Sound_GMEnter = std::filesystem::path(gPathResources) / "Sounds\\gmenter.mp3";
+	std::filesystem::path Sound_GMLeave = std::filesystem::path(gPathResources) / "Sounds\\gmleave.mp3";
+	std::filesystem::path Sound_GMRemind = std::filesystem::path(gPathResources) / "Sounds\\gmremind.mp3";
 
 	BooleanOption m_GMCheckEnabled;
 	BooleanOption m_GMSoundEnabled;
@@ -109,6 +112,7 @@ public:
 	BooleanOption m_GMCorpseEnabled;
 	BooleanOption m_GMChatAlertEnabled;
 	BooleanOption m_GMQuietEnabled;
+	BooleanOption m_ExcludeZonesEnabled;
 
 	inline int GetReminderInterval() const { return m_ReminderInterval; }
 	void SetReminderInterval(int reminderinterval);
@@ -129,6 +133,7 @@ public:
 		m_GMCorpseEnabled = BooleanOption(default_GMCorpseEnabled, "GMCorpse", "Alerting for GM corpses is now");
 		m_GMChatAlertEnabled = BooleanOption(default_GMChatAlertEnabled, "GMChat", "Displaying GM detection alerts in MQ chat window is now");
 		m_GMQuietEnabled = BooleanOption(FlagOptions::Off, "", "GM alert and reminder quiet mode is now");
+		m_ExcludeZonesEnabled = BooleanOption(default_ExcludeZonesEnabled, "ExcludeZones", "Excluding zones listed in ExcludedZoneList from GM detection is now");
 	};
 
 private:
@@ -153,6 +158,7 @@ void Settings::Load()
 	szGMEnterCmdIf = GetPrivateProfileString("Settings", "GMEnterCmdIf", std::string(), INIFileName);
 	szGMLeaveCmd = GetPrivateProfileString("Settings", "GMLeaveCmd", std::string(), INIFileName);
 	szGMLeaveCmdIf = GetPrivateProfileString("Settings", "GMLeaveCmdIf", std::string(), INIFileName);
+	szExcludeZones = GetPrivateProfileString("Settings", "ExcludeZoneList", default_ExcludeZones, INIFileName);
 }
 
 void Settings::Reset()
@@ -164,14 +170,16 @@ void Settings::Reset()
 	m_GMCorpseEnabled.Write(default_GMCorpseEnabled);
 	m_GMChatAlertEnabled.Write(default_GMChatAlertEnabled);
 	m_GMQuietEnabled.Write(default_GMQuietEnabled);
+	m_ExcludeZonesEnabled.Write(default_ExcludeZonesEnabled);
 	szGMEnterCmd = "";
 	szGMEnterCmdIf = "";
 	szGMLeaveCmd = "";
 	szGMLeaveCmdIf = "";
+	szExcludeZones = default_ExcludeZones;
 	m_ReminderInterval = default_ReminderInterval;
-	Sound_GMEnter = std::filesystem::path(gPathResources) / "Sounds/gmenter.mp3";
-	Sound_GMLeave = std::filesystem::path(gPathResources) / "Sounds/gmleave.mp3";
-	Sound_GMRemind = std::filesystem::path(gPathResources) / "Sounds/gmremind.mp3";
+	Sound_GMEnter = std::filesystem::path(gPathResources) / "Sounds\\gmenter.mp3";
+	Sound_GMLeave = std::filesystem::path(gPathResources) / "Sounds\\gmleave.mp3";
+	Sound_GMRemind = std::filesystem::path(gPathResources) / "Sounds\\gmremind.mp3";
 }
 
 void Settings::SetReminderInterval(int ReminderInterval)
@@ -180,6 +188,8 @@ void Settings::SetReminderInterval(int ReminderInterval)
 		return;
 
 	m_ReminderInterval = ReminderInterval;
+	if (m_ReminderInterval < 10 && m_ReminderInterval)
+		m_ReminderInterval = 10;
 	WritePrivateProfileInt("Settings", "RemInt", m_ReminderInterval, INIFileName);
 }
 
@@ -331,6 +341,7 @@ public:
 		Enter,
 		Leave,
 		Remind,
+		ExcludeZones,
 		LastGMName,
 		LastGMTime,
 		LastGMDate,
@@ -339,6 +350,7 @@ public:
 		GMEnterCmdIf,
 		GMLeaveCmd,
 		GMLeaveCmdIf,
+		ExcludeZoneList,
 	};
 
 	MQ2GMCheckType() :MQ2Type("GMCheck")
@@ -355,6 +367,7 @@ public:
 		ScopedTypeMember(GMCheckMembers, Enter);
 		ScopedTypeMember(GMCheckMembers, Leave);
 		ScopedTypeMember(GMCheckMembers, Remind);
+		ScopedTypeMember(GMCheckMembers, ExcludeZones);
 		ScopedTypeMember(GMCheckMembers, LastGMName);
 		ScopedTypeMember(GMCheckMembers, LastGMTime);
 		ScopedTypeMember(GMCheckMembers, LastGMDate);
@@ -363,6 +376,7 @@ public:
 		ScopedTypeMember(GMCheckMembers, GMEnterCmdIf);
 		ScopedTypeMember(GMCheckMembers, GMLeaveCmd);
 		ScopedTypeMember(GMCheckMembers, GMLeaveCmdIf);
+		ScopedTypeMember(GMCheckMembers, ExcludeZoneList);
 	}
 
 	virtual bool GetMember(MQVarPtr VarPtr, const char* Member, char* Index, MQTypeVar& Dest) override
@@ -446,6 +460,11 @@ public:
 			Dest.Type = pStringType;
 			return true;
 
+		case GMCheckMembers::ExcludeZones:
+			Dest.DWord = s_settings.m_ExcludeZonesEnabled.Read();
+			Dest.Type = pBoolType;
+			return true;
+
 		case GMCheckMembers::LastGMName:
 			strcpy_s(DataTypeTemp, szLastGMName);
 			Dest.Ptr = &DataTypeTemp[0];
@@ -501,6 +520,11 @@ public:
 			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = pStringType;
 			return true;
+		case GMCheckMembers::ExcludeZoneList:
+			strcpy_s(DataTypeTemp, s_settings.szExcludeZones.c_str());
+			Dest.Ptr = &DataTypeTemp[0];
+			Dest.Type = pStringType;
+			return true;
 		}
 
 		return false;
@@ -530,7 +554,7 @@ void GMCheckStatus(bool MentionHelp = false)
 	else
 		strcpy_s(szTemp, "\arDisabled");
 
-	WriteChatf("%s\ar- \atGM Check is: %s \at(Chat: %s \at- Sound: %s \at- Beep: %s \at- Popup: %s \at- Corpses: %s\at) - Reminder Interval: %s",
+	WriteChatf("%s\ar- \atGM Check is: %s \at(Chat: %s \at- Sound: %s \at- Beep: %s \at- Popup: %s \at- Corpses: %s \at- Exclude: \ag%s\at) - Reminder Interval: %s",
 		PluginMsg,
 		s_settings.m_GMCheckEnabled.Read() ? "\agON" : "\arOFF",
 		s_settings.m_GMChatAlertEnabled.Read() ? "\agON" : "\arOFF",
@@ -538,6 +562,7 @@ void GMCheckStatus(bool MentionHelp = false)
 		s_settings.m_GMBeepEnabled.Read() ? "\agON" : "\arOFF",
 		s_settings.m_GMPopupEnabled.Read() ? "\agON" : "\arOFF",
 		s_settings.m_GMCorpseEnabled.Read() ? "\agINCLUDED" : "\ayIGNORED",
+		s_settings.m_ExcludeZonesEnabled.Read() ? s_settings.szExcludeZones.c_str() : "\arOFF",
 		szTemp);
 
 	if (MentionHelp)
@@ -963,6 +988,7 @@ void GMHelp()
 	WriteChatf("%s\ay/gmcheck popup [off|on]\ax: \agToggle showing popup messages for GM alerts, or force on/off.", PluginMsg);
 	WriteChatf("%s\ay/gmcheck chat [off|on]\ax: \agToggle GM alert being output to the MQ chat window, or force on/off.", PluginMsg);
 	WriteChatf("%s\ay/gmcheck corpse [off|on]\ax: \agToggle GM alert being ignored if the spawn is a corpse, or force on/off.", PluginMsg);
+	WriteChatf("%s\ay/gmcheck exclude [off|on]\ax: \agToggle GM alert being ignored if in a zone defined by ExcludeZoneList, or force on/off.", PluginMsg);
 	WriteChatf("%s\ay/gmcheck rem \ax: \agChange alert reminder interval, in seconds.  e.g.: /gmcheck rem 15 (0 to disable)", PluginMsg);
 	WriteChatf("%s\ay/gmcheck load \ax: \agLoad settings from INI file.", PluginMsg);
 	WriteChatf("%s\ay/gmcheck test {enter|leave|remind} \ax: Test alerts & sounds for the indicated type.  e.g.: /gmcheck test leave", PluginMsg);
@@ -1031,6 +1057,11 @@ void GMCheckCmd(PlayerClient* pChar, char* szLine)
 	{
 		strcpy_s(szArg2, GetNextArg(szLine));
 		GMReminder(szArg2);
+	}
+	else if (!_stricmp(szArg1, "exclude"))
+	{
+		strcpy_s(szArg2, GetNextArg(szLine));
+		s_settings.m_ExcludeZonesEnabled.Write(!_stricmp(szArg2, "on") ? FlagOptions::On : !_stricmp(szArg2, "off") ? FlagOptions::Off : FlagOptions::Toggle);
 	}
 	else if (!_stricmp(szArg1, "load"))
 	{
@@ -1135,6 +1166,14 @@ void DrawGMCheckSettingsPanel()
 	}
 	ImGui::SameLine();
 	mq::imgui::HelpMarker("Toggle GM alert being output to the MQ chat window");
+
+	bool ExcludeZonesEnabled = s_settings.m_ExcludeZonesEnabled.Read();
+	if (ImGui::Checkbox("Exclude Zones", &ExcludeZonesEnabled))
+	{
+		s_settings.m_ExcludeZonesEnabled.Write(ExcludeZonesEnabled ? FlagOptions::On : FlagOptions::Off);
+	}
+	ImGui::SameLine();
+	mq::imgui::HelpMarker("Toggle GM alerts being excluded for zones defined in ExcludeZoneList");
 
 	int GMReminderInterval = s_settings.GetReminderInterval();
 	if (ImGui::SliderInt("Reminder Interval", &GMReminderInterval, 0, 600))
@@ -1261,6 +1300,18 @@ void DrawGMCheckSettingsPanel()
 	ImGui::SameLine();
 	mq::imgui::HelpMarker("Set any conditions to evaluate whether the GM Leave Cmd is executed when a GM leaves the zone");
 
+	static char szGMExcludeZones[MAX_STRING] = { 0 };
+	strcpy_s(szGMExcludeZones, s_settings.szExcludeZones.c_str());
+	ImGui::SetNextItemWidth(320.0f);
+	if (ImGui::InputText("Exclude Zone List", szGMExcludeZones, MAX_STRING, ImGuiInputTextFlags_EnterReturnsTrue) && strlen(szGMExcludeZones) > 0)
+	{
+		WriteChatf("Set ExcludeZoneList to:  \ay%s\ax", szGMExcludeZones);
+		s_settings.szExcludeZones = szGMExcludeZones;
+		WritePrivateProfileString("Settings", "ExcludeZoneList", szGMExcludeZones, INIFileName);
+	}
+	ImGui::SameLine();
+	mq::imgui::HelpMarker("List of zones to not alert in if Exclude Zones is enabled (short names separated by | )");
+	
 	ImGui::NewLine();
 	ImGui::Separator();
 
@@ -1358,6 +1409,20 @@ PLUGIN_API void OnPulse()
 					return true;
 				}), GMNames.end());
 			}
+			// Check if we are in an excluded zone
+			if (s_settings.m_ExcludeZonesEnabled.Read() && !s_settings.szExcludeZones.empty())
+			{
+				const int CurrentZone = pLocalPC ? (pLocalPC->zoneId & 0x7FFF) : 0;
+				if (CurrentZone > 0)
+				{
+					const std::vector<std::string> ExcludeZones = split(s_settings.szExcludeZones, '|');
+					if (std::find(ExcludeZones.begin(), ExcludeZones.end(), pWorldData->ZoneArray[CurrentZone]->ShortName) != ExcludeZones.end())
+					{
+						return;
+					}
+				}
+			}
+
 			// Add any GMs that appeared
 			SPAWNINFO* pSpawn = pSpawnList;
 			while (pSpawn) {
