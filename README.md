@@ -49,7 +49,7 @@ Sound - Play sound files for alerts.
 Beep - Beep the PC speaker for alerts (or play PC beep).  
 Popup - Show popup overlays for alerts.  
 Corpse - Exclude GM corpses from alerts.  
-Exclude - Exclude checks/alerts if in zone defined in ExcludeZoneList.
+Exclude - Exclude checks/alerts if in zone defined in ExcludeZoneList.  
 RemInt - Number of seconds for reminder interval.  
 EnterSound - Alert enter sound filename.  
 LeaveSound - Alert leave sound filename.  
@@ -58,7 +58,7 @@ GMEnterCmd - Command to execute when 1st GM enters zone.
 GMEnterCmdIf - Optional evaluation to fine tune GMEnterCmd.  
 GMLeaveCmd - Command to execute when last GM exits zone.  
 GMLeaveCmdIf - Optional evaluation to fine tune GMLeaveCmd.  
-ExcludeZoneList - Pipe (|) separated list of zone short names to exclude from GM checks/alerts
+ExcludeZoneList - Pipe (|) separated list of zone short names to exclude from GM checks/alerts  
 
 In addition, you can have a Section Name corresponding to a GM name, and those custom enter/leave sounds will be played for that GM instead:
 
@@ -78,7 +78,7 @@ GMBeep=off
 GMPopup=on  
 GMChat=on  
 GMCorpse=off  
-ExcludeZones=on
+ExcludeZones=on  
 RemInt=30  
 EnterSound=c:\mq\resources\sounds\gmenter.mp3  
 LeaveSound=c:\mq\resources\sounds\gmleave.mp3  
@@ -87,7 +87,7 @@ GMEnterCmdIf=${If[${Zone.ID}==344 || ${Zone.ID}==345,1,0]}
 GMEnterCmd=/multiline ; /end ; /camp desktop  
 GMLeaveCmdIf=${If[${Zone.ID}==344 || ${Zone.ID}==345,1,0]}  
 GMLeaveCmd=  
-ExcludeZoneList=nexus|poknowledge
+ExcludeZoneList=nexus|poknowledge  
 
 [Deodan]  
 EnterSound=c:\mq\resources\sounds\prickishere.wav  
@@ -106,4 +106,3 @@ Finally, your INI stores a history of GM names you've encountered in your travel
 * **htw** - *Added imgui options*
 * **htw** - *Fixed corpse logic*
 * **htw** - *Added zone exclusion option*
-* 
