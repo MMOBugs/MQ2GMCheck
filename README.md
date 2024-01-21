@@ -49,6 +49,7 @@ Sound - Play sound files for alerts.
 Beep - Beep the PC speaker for alerts (or play PC beep).  
 Popup - Show popup overlays for alerts.  
 Corpse - Exclude GM corpses from alerts.  
+Exclude - Exclude checks/alerts if in zone defined in ExcludeZoneList.
 RemInt - Number of seconds for reminder interval.  
 EnterSound - Alert enter sound filename.  
 LeaveSound - Alert leave sound filename.  
