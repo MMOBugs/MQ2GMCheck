@@ -21,7 +21,7 @@
 #include <mq/imgui/ImGuiUtils.h>
 
 PreSetup("MQ2GMCheck");
-PLUGIN_VERSION(5.30);
+PLUGIN_VERSION(5.31);
 
 constexpr const char* PluginMsg = "\ay[\aoMQ2GMCheck\ax] ";
 
@@ -321,6 +321,23 @@ int MCEval(const char* zBuffer)
 	strcpy_s(zOutput, zBuffer);
 	ParseMacroData(zOutput, MAX_STRING);
 	return GetIntFromString(zOutput, 0);
+}
+
+bool IsExcludedZone()
+{
+	if (s_settings.m_ExcludeZonesEnabled.Read() && !s_settings.szExcludeZones.empty())
+	{
+		const int CurrentZone = pLocalPC ? (pLocalPC->zoneId & 0x7FFF) : 0;
+		if (CurrentZone > 0)
+		{
+			const std::vector<std::string> ExcludeZones = split(s_settings.szExcludeZones, '|');
+			if (std::find(ExcludeZones.begin(), ExcludeZones.end(), pWorldData->ZoneArray[CurrentZone]->ShortName) != ExcludeZones.end())
+			{
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 class MQ2GMCheckType* pGMCheckType = nullptr;
@@ -1410,18 +1427,11 @@ PLUGIN_API void OnPulse()
 					return true;
 				}), GMNames.end());
 			}
+
 			// Check if we are in an excluded zone
-			if (s_settings.m_ExcludeZonesEnabled.Read() && !s_settings.szExcludeZones.empty())
+			if (IsExcludedZone())
 			{
-				const int CurrentZone = pLocalPC ? (pLocalPC->zoneId & 0x7FFF) : 0;
-				if (CurrentZone > 0)
-				{
-					const std::vector<std::string> ExcludeZones = split(s_settings.szExcludeZones, '|');
-					if (std::find(ExcludeZones.begin(), ExcludeZones.end(), pWorldData->ZoneArray[CurrentZone]->ShortName) != ExcludeZones.end())
-					{
-						return;
-					}
-				}
+				return;
 			}
 
 			// Add any GMs that appeared
@@ -1455,7 +1465,7 @@ PLUGIN_API void OnPulse()
 
 PLUGIN_API void OnAddSpawn(PlayerClient* pSpawn)
 {
-	if (pLocalPC && s_settings.m_GMCheckEnabled.Read() && pSpawn && pSpawn->GM && (s_settings.m_GMCorpseEnabled.Read() || pSpawn->Type != SPAWN_CORPSE))
+	if (pLocalPC && s_settings.m_GMCheckEnabled.Read() && pSpawn && pSpawn->GM && (s_settings.m_GMCorpseEnabled.Read() || pSpawn->Type != SPAWN_CORPSE) && !IsExcludedZone())
 	{
 		if (pSpawn->DisplayedName[0] != '\0')
 		{
@@ -1466,7 +1476,7 @@ PLUGIN_API void OnAddSpawn(PlayerClient* pSpawn)
 
 PLUGIN_API void OnRemoveSpawn(PlayerClient* pSpawn)
 {
-	if (s_settings.m_GMCheckEnabled.Read() && !GMNames.empty() && pSpawn && pSpawn->GM)
+	if (s_settings.m_GMCheckEnabled.Read() && !GMNames.empty() && pSpawn && pSpawn->GM && !IsExcludedZone())
 	{
 		const size_t start_size = GMNames.size();
 		GMNames.erase(std::remove_if(GMNames.begin(), GMNames.end(), [pSpawn](const std::string& i)
