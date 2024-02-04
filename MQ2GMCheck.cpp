@@ -21,7 +21,7 @@
 #include <mq/imgui/ImGuiUtils.h>
 
 PreSetup("MQ2GMCheck");
-PLUGIN_VERSION(5.31);
+PLUGIN_VERSION(5.32);
 
 constexpr const char* PluginMsg = "\ay[\aoMQ2GMCheck\ax] ";
 
@@ -1397,6 +1397,12 @@ PLUGIN_API void OnPulse()
 		waveOutSetVolume(nullptr, dwVolume);
 	}
 
+	// Check if we are in an excluded zone
+	if (IsExcludedZone())
+	{
+		return;
+	}
+
 	if (gGameState == GAMESTATE_INGAME)
 	{
 		duration elapsed = clock::now() - pulsestart;
@@ -1426,12 +1432,6 @@ PLUGIN_API void OnPulse()
 					DoGMAlert(pSpawn->DisplayedName, GMStatuses::Leave);
 					return true;
 				}), GMNames.end());
-			}
-
-			// Check if we are in an excluded zone
-			if (IsExcludedZone())
-			{
-				return;
 			}
 
 			// Add any GMs that appeared
