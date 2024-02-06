@@ -21,14 +21,9 @@
 #include <mq/imgui/ImGuiUtils.h>
 
 PreSetup("MQ2GMCheck");
-PLUGIN_VERSION(5.32);
+PLUGIN_VERSION(5.4);
 
 constexpr const char* PluginMsg = "\ay[\aoMQ2GMCheck\ax] ";
-
-char szLastGMName[MAX_STRING] = { 0 };
-char szLastGMTime[MAX_STRING] = { 0 };
-char szLastGMDate[MAX_STRING] = { 0 };
-char szLastGMZone[MAX_STRING] = { 0 };
 
 uint32_t bmMQ2GMCheck = 0;
 uint64_t StopSoundTimer = 0;
@@ -39,16 +34,56 @@ DWORD NewVol;
 bool bGMCmdActive = false;
 bool bVolSet = false;
 
-std::vector<std::string> GMNames;
+enum FlagOptions { Off, On, Toggle };
 
-enum FlagOptions { Off, On, Toggle};
+enum class GMStatuses
+{
+	Enter,
+	Leave,
+	Reminder
+};
+
+class GMTrack
+{
+private:
+	typedef std::chrono::high_resolution_clock clock;
+	typedef std::chrono::duration<float, std::milli> duration;
+	clock::time_point pulsestart;
+	clock::time_point reminderstart;
+	clock::time_point reminderdelay;
+	enum ExcludeZone { Exclude, Include, Zoning };
+public:
+	ExcludeZone eExcludeZone = ExcludeZone::Include;
+	std::map<std::string, bool> GMNames;
+	std::string LastGMName = "NONE";
+	std::string LastGMTime = "NEVER";
+	std::string LastGMDate = "NEVER";
+	std::string LastGMZone = "NONE";
+	GMTrack();
+	template <class Iterator> Iterator ciEqual(Iterator first, Iterator last, const char* value);
+	void CheckAlerts();
+	bool AlertPending();
+	uint32_t GMCount() const;
+	void AddGM(const char* gm_name);
+	void RemoveGM(const char* gm_name);
+	void PlayAlerts();
+	void Clear();
+	void BeginZone();
+	void EndZone();
+	void SetExcludedZone();
+	bool IsIncludedZone() const;
+} *gmTrack;
+
+static void DoGMAlert(const char* gm_name, GMStatuses status, bool test = false);
+static void TrackGMs(const char* GMName);
+static const char* DisplayDT(const char* Format);
 
 class BooleanOption
 {
 private:
 	std::string KeyName;
 	std::string ChatMessage;
-	bool bFlag;
+	bool bFlag = false;
 public:
 	BooleanOption() {};
 	BooleanOption(bool Default, std::string Key, std::string Message)
@@ -160,6 +195,7 @@ void Settings::Load()
 	szGMLeaveCmd = GetPrivateProfileString("Settings", "GMLeaveCmd", std::string(), INIFileName);
 	szGMLeaveCmdIf = GetPrivateProfileString("Settings", "GMLeaveCmdIf", std::string(), INIFileName);
 	szExcludeZones = GetPrivateProfileString("Settings", "ExcludeZoneList", default_ExcludeZones, INIFileName);
+	gmTrack->SetExcludedZone();
 }
 
 void Settings::Reset()
@@ -181,6 +217,7 @@ void Settings::Reset()
 	Sound_GMEnter = std::filesystem::path(gPathResources) / "Sounds\\gmenter.mp3";
 	Sound_GMLeave = std::filesystem::path(gPathResources) / "Sounds\\gmleave.mp3";
 	Sound_GMRemind = std::filesystem::path(gPathResources) / "Sounds\\gmremind.mp3";
+	gmTrack->SetExcludedZone();
 }
 
 void Settings::SetReminderInterval(int ReminderInterval)
@@ -306,6 +343,226 @@ void Settings::SetAllGMSoundFiles()
 	SetGMSoundFile("RemindSound", &Sound_GMRemind);
 }
 
+GMTrack::GMTrack()
+{
+	pulsestart = clock::now();
+	reminderstart = clock::now();
+	reminderdelay = clock::now();
+}
+
+template <class Iterator>
+Iterator GMTrack::ciEqual(Iterator first, Iterator last, const char* value)
+{
+	while (first != last)
+	{
+		if (_stricmp((*first).c_str(), value) == 0)
+		{
+			return first;
+		}
+		first++;
+	}
+	return last;
+}
+
+void GMTrack::CheckAlerts()
+{
+	// Remove ourself if we were placed in the list
+	if (!GMNames.empty())
+	{
+		for (auto it = GMNames.begin(); it != GMNames.end(); it++)
+		{
+			const PlayerClient* pSpawn = GetSpawnByName(it->first.c_str());
+			if (pSpawn && pSpawn->GM && pSpawn->SpawnID == pLocalPlayer->SpawnID)
+			{
+				GMNames.erase(it);
+			}
+		}
+	}
+	// Remove any GMs that left
+	if (!GMNames.empty())
+	{
+		for (auto it = GMNames.begin(); it != GMNames.end(); it++)
+		{
+			const PlayerClient* pSpawn = GetSpawnByName(it->first.c_str());
+			if (!pSpawn)
+			{
+				GMNames.erase(it);
+			}
+			else if (!pSpawn->GM)
+			{
+				GMNames.erase(it);
+			}
+		}
+	}
+	// Add any GMs that appeared
+	SPAWNINFO* pSpawn = pSpawnList;
+	while (pSpawn) {
+		if (pSpawn->GM && pSpawn->SpawnID != pLocalPlayer->SpawnID)
+		{
+			AddGM(pSpawn->DisplayedName);
+		}
+		pSpawn = pSpawn->GetNext();
+	}
+	// Alert if not flagged yet
+	if (!GMNames.empty() && !s_settings.m_GMQuietEnabled.Read() && s_settings.m_GMCheckEnabled.Read())
+	{
+		for (auto it = GMNames.begin(); it != GMNames.end(); it++)
+		{
+			if (!it->second)
+			{
+				it->second = true;
+				DoGMAlert(it->first.c_str(), GMStatuses::Enter);
+			}
+		}
+	}
+}
+
+bool GMTrack::AlertPending()
+{
+	if (!GMNames.empty() && !s_settings.m_GMQuietEnabled.Read() && s_settings.m_GMCheckEnabled.Read())
+	{
+		for (auto it = GMNames.begin(); it != GMNames.end(); it++)
+		{
+			if (!it->second)
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+uint32_t GMTrack::GMCount() const
+{
+	return GMNames.size();
+}
+
+void GMTrack::AddGM(const char* gm_name)
+{
+	for (auto it = GMNames.begin(); it != GMNames.end(); it++)
+	{
+
+		if (!_stricmp(it->first.c_str(), gm_name))
+			return;
+	}
+	TrackGMs(gm_name);
+	GMNames.insert(std::make_pair(gm_name, false));
+	LastGMName = gm_name;
+	LastGMTime = DisplayDT("%I:%M:%S %p");
+	LastGMDate = DisplayDT("%m-%d-%y");
+	LastGMZone = "UNKNOWN";
+	const int zoneid = pLocalPC->get_zoneId();
+	if (zoneid <= MAX_ZONES)
+	{
+		LastGMZone = pWorldData->ZoneArray[zoneid]->LongName;
+	}
+}
+
+void GMTrack::RemoveGM(const char* gm_name)
+{
+	for (auto it = GMNames.begin(); it != GMNames.end(); it++)
+	{
+		if (!_stricmp(it->first.c_str(), gm_name))
+		{
+			GMNames.erase(it);
+		}
+	}
+}
+
+void GMTrack::PlayAlerts()
+{
+	MQScopedBenchmark bm(bmMQ2GMCheck);
+
+	if (eExcludeZone == ExcludeZone::Zoning)
+		return;
+
+	if (bVolSet && StopSoundTimer && MQGetTickCount64() >= StopSoundTimer)
+	{
+		StopSoundTimer = 0;
+		waveOutSetVolume(nullptr, dwVolume);
+	}
+	if (gGameState == GAMESTATE_INGAME)
+	{
+		duration elapsed = clock::now() - pulsestart;
+		bool AlertPending = gmTrack->AlertPending();
+		if (elapsed.count() > 15000 || AlertPending)
+		{
+			uint32_t gmc = gmTrack->GMCount();
+			pulsestart = clock::now();
+			gmTrack->CheckAlerts();
+			if (gmTrack->GMCount() > gmc)
+				reminderstart = clock::now();
+		}
+
+		if (s_settings.GetReminderInterval() > 0)
+		{
+			duration elapsed = clock::now() - reminderstart;
+			duration delayelapsed = clock::now() - reminderdelay;
+			if (elapsed.count() > s_settings.GetReminderInterval() * 1000 && delayelapsed.count() > 10000)
+			{
+				reminderstart = clock::now();
+				if (!GMNames.empty() && !s_settings.m_GMQuietEnabled.Read() && s_settings.m_GMCheckEnabled.Read() && !AlertPending)
+				{
+					std::string joined_names = "";
+					for (auto it = GMNames.begin(); it != GMNames.end(); it++)
+					{
+						if (it == GMNames.begin())
+							joined_names = "\ag";
+						else
+							joined_names += "\ax\am,\ax \ag";
+						joined_names += it->first;
+					}
+					DoGMAlert(joined_names.c_str(), GMStatuses::Reminder);
+				}
+			}
+		}
+	}
+}
+
+void GMTrack::Clear()
+{
+	GMNames.clear();
+}
+
+void GMTrack::BeginZone()
+{
+	eExcludeZone = ExcludeZone::Zoning;
+	GMNames.clear();
+}
+
+void GMTrack::EndZone()
+{
+	s_settings.m_GMQuietEnabled.Write(FlagOptions::Off, true);
+	SetExcludedZone();
+	reminderdelay = clock::now();
+}
+
+void GMTrack::SetExcludedZone()
+{
+	if (s_settings.m_ExcludeZonesEnabled.Read() && !s_settings.szExcludeZones.empty())
+	{
+		const int CurrentZone = pLocalPC ? (pLocalPC->zoneId & 0x7FFF) : 0;
+		if (CurrentZone > 0)
+		{
+			const std::vector<std::string> ExcludeZones = split(s_settings.szExcludeZones, '|');
+			if (ciEqual(ExcludeZones.begin(), ExcludeZones.end(), GetShortZone(CurrentZone)) != ExcludeZones.end())
+			{
+				eExcludeZone = ExcludeZone::Exclude;
+				GMNames.clear();
+				return;
+			}
+		}
+	}
+	eExcludeZone = ExcludeZone::Include;
+}
+
+bool GMTrack::IsIncludedZone() const
+{
+	if (eExcludeZone == ExcludeZone::Include)
+		return true;
+	return false;
+}
+
 enum HistoryType {
 	eHistory_Zone,
 	eHistory_Server,
@@ -321,23 +578,6 @@ int MCEval(const char* zBuffer)
 	strcpy_s(zOutput, zBuffer);
 	ParseMacroData(zOutput, MAX_STRING);
 	return GetIntFromString(zOutput, 0);
-}
-
-bool IsExcludedZone()
-{
-	if (s_settings.m_ExcludeZonesEnabled.Read() && !s_settings.szExcludeZones.empty())
-	{
-		const int CurrentZone = pLocalPC ? (pLocalPC->zoneId & 0x7FFF) : 0;
-		if (CurrentZone > 0)
-		{
-			const std::vector<std::string> ExcludeZones = split(s_settings.szExcludeZones, '|');
-			if (std::find(ExcludeZones.begin(), ExcludeZones.end(), pWorldData->ZoneArray[CurrentZone]->ShortName) != ExcludeZones.end())
-			{
-				return true;
-			}
-		}
-	}
-	return false;
 }
 
 class MQ2GMCheckType* pGMCheckType = nullptr;
@@ -413,7 +653,7 @@ public:
 			return true;
 
 		case GMCheckMembers::GM:
-			Dest.DWord = !GMNames.empty();
+			Dest.DWord = gmTrack->GMCount() > 0 ? true : false;
 			Dest.Type = pBoolType;
 			return true;
 
@@ -422,12 +662,19 @@ public:
 			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = pStringType;
 
-			if (GMNames.empty())
-				return false;
-
-			const std::string joined_names = join(GMNames, ", ");
-			strcpy_s(DataTypeTemp, joined_names.c_str());
-			return true;
+			if (!gmTrack->GMNames.empty() && s_settings.m_GMCheckEnabled.Read())
+			{
+				std::string joined_names = "";
+				for (auto it = gmTrack->GMNames.begin(); it != gmTrack->GMNames.end(); it++)
+				{
+					if (it != gmTrack->GMNames.begin())
+						joined_names += ", ";
+					joined_names += it->first;
+				}
+				strcpy_s(DataTypeTemp, joined_names.c_str());
+				return true;
+			}
+			return false;
 		}
 
 		case GMCheckMembers::Sound:
@@ -484,25 +731,25 @@ public:
 			return true;
 
 		case GMCheckMembers::LastGMName:
-			strcpy_s(DataTypeTemp, szLastGMName);
+			strcpy_s(DataTypeTemp, gmTrack->LastGMName.c_str());
 			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = pStringType;
 			return true;
 
 		case GMCheckMembers::LastGMTime:
-			strcpy_s(DataTypeTemp, szLastGMTime);
+			strcpy_s(DataTypeTemp, gmTrack->LastGMTime.c_str());
 			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = pStringType;
 			return true;
 
 		case GMCheckMembers::LastGMDate:
-			strcpy_s(DataTypeTemp, szLastGMDate);
+			strcpy_s(DataTypeTemp, gmTrack->LastGMDate.c_str());
 			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = pStringType;
 			return true;
 
 		case GMCheckMembers::LastGMZone:
-			strcpy_s(DataTypeTemp, szLastGMZone);
+			strcpy_s(DataTypeTemp, gmTrack->LastGMZone.c_str());
 			Dest.Ptr = &DataTypeTemp[0];
 			Dest.Type = pStringType;
 			return true;
@@ -550,7 +797,7 @@ public:
 
 	virtual bool ToString(MQVarPtr VarPtr, char* Destination) override
 	{
-		strcpy_s(Destination, MAX_STRING, GMNames.empty() ? "FALSE" : "TRUE");
+		strcpy_s(Destination, MAX_STRING, gmTrack->GMNames.empty() ? "FALSE" : "TRUE");
 		return true;
 	}
 
@@ -562,7 +809,7 @@ public:
 	}
 };
 
-void GMCheckStatus(bool MentionHelp = false)
+static void GMCheckStatus(bool MentionHelp = false)
 {
 	WriteChatf("\at%s \agv%1.2f", mqplugin::PluginName, MQ2Version);
 	char szTemp[MAX_STRING] = { 0 };
@@ -587,18 +834,18 @@ void GMCheckStatus(bool MentionHelp = false)
 		WriteChatf("%s\ayUse '/gmcheck help' for command help", PluginMsg);
 }
 
-void PlayErrorSound(const char* sound = "SystemDefault")
+static void PlayErrorSound(const char* sound = "SystemDefault")
 {
 	PlaySound(nullptr, nullptr, SND_NODEFAULT);
 	PlaySound(sound, nullptr, SND_ALIAS | SND_ASYNC | SND_NODEFAULT);
 }
 
-void StopGMSound()
+static void StopGMSound()
 {
 	mciSendString("Close mySound", nullptr, 0, nullptr);
 }
 
-void PlayGMSound(const std::filesystem::path& sound_file)
+static void PlayGMSound(const std::filesystem::path& sound_file)
 {
 	StopGMSound();
 
@@ -671,7 +918,7 @@ void PlayGMSound(const std::filesystem::path& sound_file)
 	StopSoundTimer = MQGetTickCount64() + 1000;
 }
 
-const char* DisplayDT(const char* Format)
+static const char* DisplayDT(const char* Format)
 {
 	static char CurrentDT[MAX_STRING] = { 0 };
 	struct tm currentDT;
@@ -683,7 +930,7 @@ const char* DisplayDT(const char* Format)
 	return(CurrentDT);
 }
 
-void GMReminder(char* szLine)
+static void GMReminder(char* szLine)
 {
 	char Interval[MAX_STRING];
 	GetArg(Interval, szLine, 1);
@@ -704,7 +951,7 @@ void GMReminder(char* szLine)
 		WriteChatf("%s\aw: Reminder interval set to \ar%u \awseconds (\arDISABLED\aw).", PluginMsg, s_settings.GetReminderInterval());
 }
 
-void GMQuiet(char* szLine)
+static void GMQuiet(char* szLine)
 {
 	char szArg[MAX_STRING];
 	GetArg(szArg, szLine, 1);
@@ -717,7 +964,7 @@ void GMQuiet(char* szLine)
 		s_settings.m_GMQuietEnabled.Write(FlagOptions::Off);
 }
 
-void TrackGMs(const char* GMName)
+static void TrackGMs(const char* GMName)
 {
 	char szSection[MAX_STRING] = { 0 };
 	char szTemp[MAX_STRING] = { 0 };
@@ -745,19 +992,19 @@ void TrackGMs(const char* GMName)
 	WritePrivateProfileString(szSection, GMName, szTemp, INIFileName);
 }
 
-enum class GMStatuses
-{
-	Enter,
-	Leave,
-	Reminder
-};
-
-void DoGMAlert(const char* gm_name, GMStatuses status, bool test=false)
+static void DoGMAlert(const char* gm_name, GMStatuses status, bool test)
 {
 	char szMsg[MAX_STRING] = { 0 };
 	std::filesystem::path sound_to_play;
 	int overlay_color = CONCOLOR_RED;
 	std::string beep_sound = "SystemDefault";
+
+	if (!test && !gmTrack->IsIncludedZone())
+		return;
+
+	if (!strcmp(gm_name, pLocalPlayer->Name))
+		return;
+
 	switch(status)
 	{
 	case GMStatuses::Enter:
@@ -779,7 +1026,7 @@ void DoGMAlert(const char* gm_name, GMStatuses status, bool test=false)
 	if (s_settings.m_GMChatAlertEnabled.Read())
 		WriteChatf("%s%s", PluginMsg, szMsg);
 
-	if (test || (status == GMStatuses::Enter && !bGMCmdActive) || (status == GMStatuses::Leave && bGMCmdActive && GMNames.empty()))
+	if (test || (status == GMStatuses::Enter && !bGMCmdActive) || (status == GMStatuses::Leave && bGMCmdActive && gmTrack->GMNames.empty()))
 	{
 		// TODO: This could use some cleanup -- is MCEval even necessary?
 		char szTmpCmd[MAX_STRING] = { 0 };
@@ -818,29 +1065,7 @@ void DoGMAlert(const char* gm_name, GMStatuses status, bool test=false)
 	}
 }
 
-void AddGM(const char* gm_name)
-{
-	// Do nothing if we're already tracking a GM with this display name
-	if (std::find(GMNames.begin(), GMNames.end(), gm_name) == GMNames.end())
-	{
-		TrackGMs(gm_name);
-		GMNames.emplace_back(gm_name);
-		strcpy_s(szLastGMName, gm_name);
-		strcpy_s(szLastGMTime, DisplayDT("%I:%M:%S %p"));
-		strcpy_s(szLastGMDate, DisplayDT("%m-%d-%y"));
-		strcpy_s(szLastGMZone, "UNKNOWN");
-
-		const int zoneid = pLocalPC->get_zoneId();
-		if (zoneid <= MAX_ZONES)
-		{
-			strcpy_s(szLastGMZone, pWorldData->ZoneArray[zoneid]->LongName);
-		}
-
-		DoGMAlert(gm_name, GMStatuses::Enter);
-	}
-}
-
-void GMTest(char* szLine)
+static void GMTest(char* szLine)
 {
 	if (gGameState != GAMESTATE_INGAME)
 	{
@@ -868,7 +1093,7 @@ void GMTest(char* szLine)
 	}
 }
 
-void GMSS(const char* szLine)
+static void GMSS(const char* szLine)
 {
 	char szArg[MAX_STRING] = { 0 };
 	char szFile[MAX_STRING] = { 0 };
@@ -911,7 +1136,7 @@ void GMSS(const char* szLine)
 	}
 }
 
-void HistoryGMs(HistoryType histValue)
+static void HistoryGMs(HistoryType histValue)
 {
 	// TODO: Clean up this format, left it for backwards compatibility
 
@@ -995,7 +1220,7 @@ void HistoryGMs(HistoryType histValue)
 	return;
 }
 
-void GMHelp()
+static void GMHelp()
 {
 	WriteChatf("\n%s\ayMQ2GMCheck Commands:\n", PluginMsg);
 	WriteChatf("%s\ay/gmcheck [status] \ax: \agShow current settings/status.", PluginMsg);
@@ -1080,6 +1305,7 @@ void GMCheckCmd(PlayerClient* pChar, char* szLine)
 	{
 		strcpy_s(szArg2, GetNextArg(szLine));
 		s_settings.m_ExcludeZonesEnabled.Write(!_stricmp(szArg2, "on") ? FlagOptions::On : !_stricmp(szArg2, "off") ? FlagOptions::Off : FlagOptions::Toggle);
+		gmTrack->SetExcludedZone();
 	}
 	else if (!_stricmp(szArg1, "load"))
 	{
@@ -1106,11 +1332,12 @@ void GMCheckCmd(PlayerClient* pChar, char* szLine)
 	else if (!_stricmp(szArg1, "All"))
 	{
 		HistoryGMs(eHistory_All);
-	} else
+	}
+	else
 		GMCheckStatus(true);
 }
 
-void SetupVolumesFromINI()
+static void SetupVolumesFromINI()
 {
 	//LeftVolume
 	int i = GetPrivateProfileInt("Settings", "LeftVolume", -1, INIFileName);
@@ -1135,7 +1362,7 @@ void SetupVolumesFromINI()
 	NewVol = NewVol + (static_cast<DWORD>(x) << 16);
 }
 
-void DrawGMCheckSettingsPanel()
+static void DrawGMCheckSettingsPanel()
 {
 	bool GMCheckEnabled = s_settings.m_GMCheckEnabled.Read();
 	if (ImGui::Checkbox("Checking Enabled", &GMCheckEnabled))
@@ -1189,6 +1416,7 @@ void DrawGMCheckSettingsPanel()
 	if (ImGui::Checkbox("Exclude Zones", &ExcludeZonesEnabled))
 	{
 		s_settings.m_ExcludeZonesEnabled.Write(ExcludeZonesEnabled ? FlagOptions::On : FlagOptions::Off);
+		gmTrack->SetExcludedZone();
 	}
 	ImGui::SameLine();
 	mq::imgui::HelpMarker("Toggle GM alerts being excluded for zones defined in ExcludeZoneList");
@@ -1326,6 +1554,7 @@ void DrawGMCheckSettingsPanel()
 		WriteChatf("Set ExcludeZoneList to:  \ay%s\ax", szGMExcludeZones);
 		s_settings.szExcludeZones = szGMExcludeZones;
 		WritePrivateProfileString("Settings", "ExcludeZoneList", szGMExcludeZones, INIFileName);
+		gmTrack->SetExcludedZone();
 	}
 	ImGui::SameLine();
 	mq::imgui::HelpMarker("List of zones to not alert in if Exclude Zones is enabled (short names separated by | )");
@@ -1352,151 +1581,76 @@ void DrawGMCheckSettingsPanel()
 PLUGIN_API void InitializePlugin()
 {
 	DebugSpewAlways("Initializing MQ2GMCheck");
+
+	gmTrack = new GMTrack();
+
 	SetupVolumesFromINI();
 
-	strcpy_s(szLastGMName, "NONE");
-	strcpy_s(szLastGMTime, "NEVER");
-	strcpy_s(szLastGMDate, "NEVER");
-	strcpy_s(szLastGMZone, "NONE");
-	GMNames.clear();
 	AddSettingsPanel("plugins/GMCheck", DrawGMCheckSettingsPanel);
 	s_settings.Load();
 
 	AddMQ2Data("GMCheck", MQ2GMCheckType::dataGMCheck);
 	bmMQ2GMCheck = AddMQ2Benchmark(mqplugin::PluginName);
 	pGMCheckType = new MQ2GMCheckType;
+
 	AddCommand("/gmcheck", GMCheckCmd);
 }
 
 PLUGIN_API void ShutdownPlugin()
 {
-	WriteChatf("%s\amUnloading plugin.", PluginMsg);
 	DebugSpewAlways("Shutting down MQ2GMCheck");
+
 	RemoveCommand("/gmcheck");
-	GMNames.clear();
+
 	RemoveMQ2Data("GMCheck");
 	RemoveMQ2Benchmark(bmMQ2GMCheck);
 	delete pGMCheckType;
+
 	if (bVolSet)
 		waveOutSetVolume(nullptr, dwVolume);
+
 	RemoveSettingsPanel("plugins/GMCheck");
+
+	delete gmTrack;
 }
 
 PLUGIN_API void OnPulse()
 {
-	typedef std::chrono::high_resolution_clock clock;
-	typedef std::chrono::duration<float, std::milli> duration;
-	static clock::time_point pulsestart = clock::now();
-	static clock::time_point reminderstart = clock::now();
-
-	MQScopedBenchmark bm(bmMQ2GMCheck);
-
-	if (bVolSet && StopSoundTimer && MQGetTickCount64() >= StopSoundTimer)
-	{
-		StopSoundTimer = 0;
-		waveOutSetVolume(nullptr, dwVolume);
-	}
-
-	// Check if we are in an excluded zone
-	if (IsExcludedZone())
-	{
-		return;
-	}
-
-	if (gGameState == GAMESTATE_INGAME)
-	{
-		duration elapsed = clock::now() - pulsestart;
-		if (elapsed.count() > 15000)
-		{
-			pulsestart = clock::now();
-			// Remove ourself if we were placed in the list
-			if (!GMNames.empty())
-			{
-				GMNames.erase(std::remove_if(GMNames.begin(), GMNames.end(), [](const std::string& gm_name)
-					{
-						const PlayerClient* pSpawn = GetSpawnByName(gm_name.c_str());
-				if (pSpawn && pSpawn->GM && pSpawn->SpawnID != pLocalPlayer->SpawnID)
-					return false;
-				return true;
-					}), GMNames.end());
-			}
-			// Remove any GMs that left
-			if (!GMNames.empty())
-			{
-				GMNames.erase(std::remove_if(GMNames.begin(), GMNames.end(), [](const std::string& gm_name)
-				{
-					const PlayerClient* pSpawn = GetSpawnByName(gm_name.c_str());
-					if (pSpawn && pSpawn->GM)
-						return false;
-
-					DoGMAlert(pSpawn->DisplayedName, GMStatuses::Leave);
-					return true;
-				}), GMNames.end());
-			}
-
-			// Add any GMs that appeared
-			SPAWNINFO* pSpawn = pSpawnList;
-			while (pSpawn) {
-				if (pSpawn->GM && pSpawn->SpawnID != pLocalPlayer->SpawnID)
-				{
-					AddGM(pSpawn->DisplayedName);
-				}
-				pSpawn = pSpawn->GetNext();
-			}
-		}
-
-		if (s_settings.GetReminderInterval() > 0)
-		{
-			duration elapsed = clock::now() - reminderstart;
-			if (elapsed.count() > s_settings.GetReminderInterval() * 1000)
-			{
-				reminderstart = clock::now();
-				if (!GMNames.empty() && !s_settings.m_GMQuietEnabled.Read() && s_settings.m_GMCheckEnabled.Read())
-				{
-					std::string joined_names = "\ag";
-					joined_names += join(GMNames, "\ax\am,\ax \ag");
-
-					DoGMAlert(joined_names.c_str(), GMStatuses::Reminder);
-				}
-			}
-		}
-	}
+	gmTrack->PlayAlerts();
 }
 
 PLUGIN_API void OnAddSpawn(PlayerClient* pSpawn)
 {
-	if (pLocalPC && s_settings.m_GMCheckEnabled.Read() && pSpawn && pSpawn->GM && (s_settings.m_GMCorpseEnabled.Read() || pSpawn->Type != SPAWN_CORPSE) && !IsExcludedZone())
+	if (pLocalPC && s_settings.m_GMCheckEnabled.Read() && pSpawn && pSpawn->GM && (s_settings.m_GMCorpseEnabled.Read() || pSpawn->Type != SPAWN_CORPSE))
 	{
 		if (pSpawn->DisplayedName[0] != '\0')
 		{
-			AddGM(pSpawn->DisplayedName);
+			gmTrack->AddGM(pSpawn->DisplayedName);
 		}
 	}
 }
 
 PLUGIN_API void OnRemoveSpawn(PlayerClient* pSpawn)
 {
-	if (s_settings.m_GMCheckEnabled.Read() && !GMNames.empty() && pSpawn && pSpawn->GM && !IsExcludedZone())
+	if (pLocalPC && s_settings.m_GMCheckEnabled.Read() && pSpawn && pSpawn->GM && (s_settings.m_GMCorpseEnabled.Read() || pSpawn->Type != SPAWN_CORPSE))
 	{
-		const size_t start_size = GMNames.size();
-		GMNames.erase(std::remove_if(GMNames.begin(), GMNames.end(), [pSpawn](const std::string& i)
+		if (pSpawn->DisplayedName[0] != '\0')
 		{
-			return ci_equals(i, pSpawn->DisplayedName);
-		}), GMNames.end());
-
-		if (GMNames.size() != start_size)
-			DoGMAlert(pSpawn->DisplayedName, GMStatuses::Leave);
+			gmTrack->RemoveGM(pSpawn->DisplayedName);
+			if (gmTrack->IsIncludedZone())
+				DoGMAlert(pSpawn->DisplayedName, GMStatuses::Leave);
+		}
 	}
+}
+
+PLUGIN_API void OnBeginZone()
+{
+	gmTrack->BeginZone();
 }
 
 PLUGIN_API void OnEndZone()
 {
-	GMNames.clear();
-}
-
-PLUGIN_API void OnZoned()
-{
-	s_settings.m_GMQuietEnabled.Write(FlagOptions::Off, true);
+	gmTrack->EndZone();
 }
 
 PLUGIN_API void SetGameState(int GameState)
